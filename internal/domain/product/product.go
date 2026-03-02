@@ -14,9 +14,10 @@ var (
 
 // Product represents a manufacturable item defined by its identity, name, and its bill of materials (BODS).
 type Product struct {
-	id   string
-	name string
-	bom  []valueObject.BillOfDrySupply
+	id     string
+	name   string
+	bods   []valueObject.BillOfDrySupply
+	active bool
 }
 
 func NewProduct(name string, bom []valueObject.BillOfDrySupply) (Product, error) {
@@ -29,9 +30,10 @@ func NewProduct(name string, bom []valueObject.BillOfDrySupply) (Product, error)
 	}
 
 	return Product{
-		id:   uuid.New().String(),
-		name: name,
-		bom:  bom,
+		id:     uuid.New().String(),
+		name:   name,
+		bods:   bom,
+		active: true,
 	}, nil
 }
 
@@ -46,7 +48,7 @@ func (p *Product) GetName() string {
 func (p *Product) CalculateRequirements(qty uint64) []valueObject.MaterialRequirement {
 	var result []valueObject.MaterialRequirement
 
-	for _, item := range p.bom {
+	for _, item := range p.bods {
 		total := item.QuantityPerUnit * qty
 
 		result = append(result, valueObject.MaterialRequirement{
