@@ -35,3 +35,11 @@ type Service struct {
 	ProductionOrderService ProductionOrderService
 	ProductService         ProductService
 }
+
+func NewApplicationService(productService ProductService, productionOrderService ProductionOrderService, saleOrderService SaleOrderService) Service {
+	return Service{
+		SaleOrderService:       saleOrderService,
+		ProductionOrderService: productionOrderService,
+		ProductService:         productService,
+	}
+}

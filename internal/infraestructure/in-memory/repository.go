@@ -22,7 +22,7 @@ type InMemoryRepository struct {
 	Products         []product.Product
 }
 
-func (r *InMemoryRepository) NewInMemoryRepository() InMemoryRepository {
+func NewInMemoryRepository() InMemoryRepository {
 	return InMemoryRepository{
 		saleOrdersMutex:       sync.RWMutex{},
 		productionOrdersMutex: sync.RWMutex{},

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package production_order;
+
+option go_package = "your/module/path/production_orderpb";
+
+import "google/protobuf/empty.proto";
+import "sale_order.proto";
+
+// Requerimiento de material
+message MaterialRequirement {
+  string dry_supply_id = 1;
+  uint64 quantity = 2;
+}
+
+// Item de producción
+message ProductionItem {
+  string product_id = 1;
+  uint64 quantity = 2;
+  repeated MaterialRequirement requirements = 3;
+}
+
+// Orden de producción
+message ProductionOrder {
+  string id = 1;
+  string sale_order_id = 2;
+  repeated ProductionItem items = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+// Requests
+message CreateProductionOrderRequest {
+  string sale_order_id = 1;
+  repeated ProductionItem items = 2;
+}
+
+message GetProductionOrderByIDRequest {
+  string id = 1;
+}
+
+message GetProductionOrdersResponse {
+  repeated ProductionOrder production_orders = 1;
+}
+
+// Servicio gRPC
+service ProductionOrderService {
+  rpc CreateProductionOrder(CreateProductionOrderRequest) returns (google.protobuf.Empty);
+  rpc GetProductionOrderByID(GetProductionOrderByIDRequest) returns (ProductionOrder);
+  rpc GetProductionOrders(google.protobuf.Empty) returns (GetProductionOrdersResponse);
+}

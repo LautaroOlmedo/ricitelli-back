@@ -15,6 +15,6 @@ type Service struct {
 	productStorage ProductStorage
 }
 
-func NewService(productStorage ProductStorage) *Service {
+func NewProductService(productStorage ProductStorage) *Service {
 	return &Service{productStorage: productStorage}
 }

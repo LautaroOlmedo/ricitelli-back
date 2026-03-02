@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package sale_order;
+
+option go_package = "your/module/path/sale_orderpb";
+
+import "google/protobuf/empty.proto";
+import "product.proto"; // Para el ID de productos en items
+
+// Un item dentro de la orden de venta
+message SaleOrderItem {
+  string product_id = 1;
+  uint64 quantity = 2;
+  float unit_price = 3;
+}
+
+// Orden de venta
+message SaleOrder {
+  string id = 1;
+  string customer_id = 2;
+  string status = 3;
+  repeated SaleOrderItem items = 4;
+  string created_at = 5;
+}
+
+// Requests
+message CreateSaleOrderRequest {
+  string customer_id = 1;
+  repeated SaleOrderItem items = 2;
+}
+
+message GetSaleOrderByIDRequest {
+  string id = 1;
+}
+
+message GetSaleOrdersResponse {
+  repeated SaleOrder sale_orders = 1;
+}
+
+// Servicio gRPC
+service SaleOrderService {
+  rpc CreateSaleOrder(CreateSaleOrderRequest) returns (SaleOrder);
+  rpc GetSaleOrderByID(GetSaleOrderByIDRequest) returns (SaleOrder);
+  rpc GetSaleOrders(google.protobuf.Empty) returns (GetSaleOrdersResponse);
+}
