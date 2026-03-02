@@ -22,6 +22,17 @@ type InMemoryRepository struct {
 	Products         []product.Product
 }
 
+func (r *InMemoryRepository) NewInMemoryRepository() InMemoryRepository {
+	return InMemoryRepository{
+		saleOrdersMutex:       sync.RWMutex{},
+		productionOrdersMutex: sync.RWMutex{},
+		productsMutex:         sync.RWMutex{},
+		SaleOrders:            make([]sale_order.SaleOrder, 0),
+		ProductionOrders:      make([]production_order.ProductionOrder, 0),
+		Products:              make([]product.Product, 0),
+	}
+}
+
 // ========================
 // SaleOrderService
 // ========================
