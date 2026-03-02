@@ -14,6 +14,7 @@ type SaleOrder struct {
 	status     string
 	items      []valueObject.SaleOrderItem
 	createdAt  string
+	active     bool
 }
 
 func NewSaleOrder(customerID string, items []valueObject.SaleOrderItem) (SaleOrder, error) {
@@ -23,7 +24,12 @@ func NewSaleOrder(customerID string, items []valueObject.SaleOrderItem) (SaleOrd
 		status:     "NEW",
 		items:      items,
 		createdAt:  time.Now().String(),
+		active:     true,
 	}, nil
+}
+
+func (s *SaleOrder) GetID() string {
+	return s.id
 }
 
 // GetItems ToDO: handle concurrency problems
