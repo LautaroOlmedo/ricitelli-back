@@ -37,8 +37,6 @@ func (s *Service) CreateOrder(
 			Requirements: reqs,
 		})
 	}
-	fmt.Println("Sale Order: ", saleOrder)
-	fmt.Println("productsItems: ", productionItems)
 
 	err = s.ProductionOrderService.CreateProductionOrder(
 		ctx,

@@ -32,9 +32,17 @@ func (s *SaleOrder) GetID() string {
 	return s.id
 }
 
+func (s *SaleOrder) GetCustomerID() string {
+	return s.customerID
+}
+
 // GetItems ToDO: handle concurrency problems
 func (s *SaleOrder) GetItems() []valueObject.SaleOrderItem {
 	itemsCopy := make([]valueObject.SaleOrderItem, len(s.items))
 	copy(itemsCopy, s.items)
 	return itemsCopy
+}
+
+func (s *SaleOrder) GetCreatedAt() string {
+	return s.createdAt
 }

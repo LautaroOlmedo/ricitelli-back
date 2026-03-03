@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	applicationpb "ricitelli-back/cmd/http/gen/application-service"
+	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
 	"ricitelli-back/cmd/http/server"
 	"ricitelli-back/config"
 	repository "ricitelli-back/internal/infraestructure/in-memory"
@@ -32,6 +33,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	svc := server.NewServer(applicationService)
+	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
 	applicationpb.RegisterApplicationServiceServer(grpcServer, svc)
 
 	lis, socketErr := net.Listen("tcp", cfg.Port)
