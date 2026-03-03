@@ -22,15 +22,16 @@ type InMemoryRepository struct {
 	Products         []product.Product
 }
 
-func NewInMemoryRepository() InMemoryRepository {
-	return InMemoryRepository{
-		saleOrdersMutex:       sync.RWMutex{},
-		productionOrdersMutex: sync.RWMutex{},
-		productsMutex:         sync.RWMutex{},
-		SaleOrders:            make([]sale_order.SaleOrder, 0),
-		ProductionOrders:      make([]production_order.ProductionOrder, 0),
-		Products:              make([]product.Product, 0),
+func NewInMemoryRepository() *InMemoryRepository {
+	repo := &InMemoryRepository{
+		SaleOrders:       make([]sale_order.SaleOrder, 0),
+		ProductionOrders: make([]production_order.ProductionOrder, 0),
+		Products:         make([]product.Product, 0),
 	}
+
+	repo.seedProducts()
+
+	return repo
 }
 
 // ========================
@@ -161,4 +162,55 @@ func (r *InMemoryRepository) GetProducts(ctx context.Context) ([]product.Product
 	copies := make([]product.Product, len(r.Products))
 	copy(copies, r.Products)
 	return copies, nil
+}
+
+// ========================
+// MOCKS
+// ========================
+
+func (r *InMemoryRepository) seedProducts() {
+	products := []struct {
+		id   string
+		name string
+		bom  []valueObject.BillOfDrySupply
+	}{
+		{
+			id:   "wine-malbec-001",
+			name: "Malbec Clásico",
+			bom: []valueObject.BillOfDrySupply{
+				{DrySupplyID: "botella", QuantityPerUnit: 1},
+				{DrySupplyID: "corcho", QuantityPerUnit: 1},
+				{DrySupplyID: "etiqueta_malbec", QuantityPerUnit: 1},
+			},
+		},
+		{
+			id:   "wine-cabernet-002",
+			name: "Cabernet Premium",
+			bom: []valueObject.BillOfDrySupply{
+				{DrySupplyID: "botella", QuantityPerUnit: 1},
+				{DrySupplyID: "corcho", QuantityPerUnit: 1},
+				{DrySupplyID: "etiqueta_cabernet", QuantityPerUnit: 2},
+				{DrySupplyID: "caja_premium", QuantityPerUnit: 1},
+			},
+		},
+		{
+			id:   "wine-reserva-003",
+			name: "Reserva Especial",
+			bom: []valueObject.BillOfDrySupply{
+				{DrySupplyID: "botella_reserva", QuantityPerUnit: 1},
+				{DrySupplyID: "corcho_reserva", QuantityPerUnit: 1},
+				{DrySupplyID: "etiqueta_dorada", QuantityPerUnit: 2},
+				{DrySupplyID: "caja_madera", QuantityPerUnit: 1},
+			},
+		},
+	}
+
+	for _, p := range products {
+		productCreated, err := product.NewProductWithID(p.id, p.name, p.bom)
+		if err != nil {
+			panic(err) // válido en seed
+		}
+
+		r.Products = append(r.Products, productCreated)
+	}
 }

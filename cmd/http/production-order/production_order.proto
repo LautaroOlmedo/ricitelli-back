@@ -5,7 +5,6 @@ package production_order;
 option go_package = "ricitelli-back/cmd/http/gen/production_order;productionorderpb";
 
 import "google/protobuf/empty.proto";
-import "sale_order.proto";
 
 // Requerimiento de material
 message MaterialRequirement {

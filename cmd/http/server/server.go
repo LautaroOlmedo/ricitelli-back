@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	applicationpb "ricitelli-back/cmd/http/gen/application-service"
 	application_service "ricitelli-back/internal/service/application-service"
 	valueObject "ricitelli-back/internal/value-object"
@@ -26,6 +27,7 @@ func (s *Server) CreateOrder(
 	ctx context.Context,
 	request *applicationpb.CreateOrderRequest,
 ) (*applicationpb.CreateOrderResponse, error) {
+	fmt.Println("customer: ", request.CustomerId)
 
 	if request.CustomerId == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid param")
@@ -39,6 +41,10 @@ func (s *Server) CreateOrder(
 			Quantity:  item.Quantity,
 		})
 	}
+
+	fmt.Println("customer: ", request.CustomerId)
+
+	fmt.Println("Sale Order: ", items)
 
 	err := s.ApplicationService.CreateOrder(
 		ctx,

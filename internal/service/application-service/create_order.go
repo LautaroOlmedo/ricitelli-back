@@ -2,6 +2,7 @@ package application_service
 
 import (
 	"context"
+	"fmt"
 	"ricitelli-back/internal/entities"
 	valueObject "ricitelli-back/internal/value-object"
 )
@@ -14,6 +15,7 @@ func (s *Service) CreateOrder(
 
 	saleOrder, err := s.SaleOrderService.CreateSaleOrder(ctx, customerID, items)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
@@ -23,6 +25,7 @@ func (s *Service) CreateOrder(
 
 		product, err := s.ProductService.GetProductByID(ctx, item.ProductID)
 		if err != nil {
+			fmt.Println(err)
 			return err
 		}
 
@@ -34,6 +37,8 @@ func (s *Service) CreateOrder(
 			Requirements: reqs,
 		})
 	}
+	fmt.Println("Sale Order: ", saleOrder)
+	fmt.Println("productsItems: ", productionItems)
 
 	err = s.ProductionOrderService.CreateProductionOrder(
 		ctx,
@@ -41,6 +46,7 @@ func (s *Service) CreateOrder(
 		productionItems,
 	)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 

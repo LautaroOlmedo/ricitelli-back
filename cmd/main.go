@@ -24,9 +24,9 @@ func main() {
 	memoryRepo := repository.NewInMemoryRepository()
 
 	// service layer
-	productService := product.NewProductService(&memoryRepo)
-	productionOrderService := production_order.NewProductionOrderService(&memoryRepo)
-	saleOrderService := sale_order.NewSaleOrderService(&memoryRepo)
+	productService := product.NewProductService(memoryRepo)
+	productionOrderService := production_order.NewProductionOrderService(memoryRepo)
+	saleOrderService := sale_order.NewSaleOrderService(memoryRepo)
 
 	applicationService := application_service.NewApplicationService(productService, productionOrderService, saleOrderService)
 

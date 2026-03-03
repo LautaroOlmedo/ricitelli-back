@@ -37,6 +37,25 @@ func NewProduct(name string, bom []valueObject.BillOfDrySupply) (Product, error)
 	}, nil
 }
 
+func NewProductWithID(id string, name string, bom []valueObject.BillOfDrySupply) (Product, error) {
+	if id == "" {
+		return Product{}, errors.New("invalid id")
+	}
+	if name == "" {
+		return Product{}, ErrInvalidName
+	}
+	if len(bom) == 0 {
+		return Product{}, ErrInvalidQuantityOfSupply
+	}
+
+	return Product{
+		id:     id,
+		name:   name,
+		bods:   bom,
+		active: true,
+	}, nil
+}
+
 func (p *Product) GetID() string {
 	return p.id
 }
