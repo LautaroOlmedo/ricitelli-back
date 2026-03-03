@@ -20,19 +20,19 @@ type Product struct {
 	active bool
 }
 
-func NewProduct(name string, bom []valueObject.BillOfDrySupply) (Product, error) {
+func NewProduct(name string, bods []valueObject.BillOfDrySupply) (Product, error) {
 	if name == "" {
 		// handle name already exists case
 		return Product{}, ErrInvalidName
 	}
-	if len(bom) == 0 {
+	if len(bods) == 0 {
 		return Product{}, ErrInvalidQuantityOfSupply
 	}
 
 	return Product{
 		id:     uuid.New().String(),
 		name:   name,
-		bods:   bom,
+		bods:   bods,
 		active: true,
 	}, nil
 }
