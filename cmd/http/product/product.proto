@@ -6,14 +6,11 @@ option go_package = "ricitelli-back/cmd/http/gen/product;productpb";
 
 import "google/protobuf/empty.proto";
 
-
-
-
-// Represents a manufacturable product with its bill of materials (BOM).
+// Represents a manufacturable product with its bill of dry supplies (BODS).
 message Product {
   string id = 1;
   string name = 2;
-  repeated BillOfDrySupply bom = 3;
+  repeated BillOfDrySupply bods = 3;
 }
 
 // Represents the quantity of a dry supply required per unit of product.
@@ -24,7 +21,7 @@ message BillOfDrySupply {
 
 message CreateProductRequest {
   string name = 1;
-  repeated BillOfDrySupply bom = 2;
+  repeated BillOfDrySupply bods = 2;
 }
 
 message GetProductByIDRequest {
@@ -37,15 +34,12 @@ message GetProductsResponse {
 
 service ProductService {
 
-  // Creates a product. Returns OK or gRPC error.
   rpc CreateProduct(CreateProductRequest)
       returns (google.protobuf.Empty);
 
-  // Returns a single product by ID.
   rpc GetProductByID(GetProductByIDRequest)
       returns (Product);
 
-  // Returns all products.
   rpc GetProducts(google.protobuf.Empty)
       returns (GetProductsResponse);
 }
