@@ -148,13 +148,9 @@ func (s *Server) GetProductionOrderByID(
 	if order == nil {
 		return nil, status.Error(codes.NotFound, "production order not found")
 	}
-
-	// 🔹 Map items
 	protoItems := make([]*productionorderpb.ProductionItem, 0, len(order.GetItems()))
 
 	for _, item := range order.GetItems() {
-
-		// 🔹 Map material requirements
 		requirements := make([]*productionorderpb.MaterialRequirement, 0, len(item.Requirements))
 
 		for _, req := range item.Requirements {
@@ -163,7 +159,6 @@ func (s *Server) GetProductionOrderByID(
 				Quantity:    req.Quantity,
 			})
 		}
-
 		protoItems = append(protoItems, &productionorderpb.ProductionItem{
 			ProductId:    item.ProductID,
 			Quantity:     item.Quantity,
@@ -195,13 +190,8 @@ func (s *Server) GetProductionOrders(
 	protoOrders := make([]*productionorderpb.ProductionOrder, 0, len(orders))
 
 	for _, order := range orders {
-
-		// 🔹 Map items
 		protoItems := make([]*productionorderpb.ProductionItem, 0, len(order.GetItems()))
-
 		for _, item := range order.GetItems() {
-
-			// 🔹 Map requirements
 			requirements := make([]*productionorderpb.MaterialRequirement, 0, len(item.Requirements))
 
 			for _, req := range item.Requirements {
@@ -210,7 +200,6 @@ func (s *Server) GetProductionOrders(
 					Quantity:    req.Quantity,
 				})
 			}
-
 			protoItems = append(protoItems, &productionorderpb.ProductionItem{
 				ProductId:    item.ProductID,
 				Quantity:     item.Quantity,
