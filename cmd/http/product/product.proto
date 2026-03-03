@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package product;
 
-option go_package = "your/module/path/productpb";
+option go_package = "ricitelli-back/cmd/http/gen/product;productpb";
 
 import "google/protobuf/empty.proto";
 

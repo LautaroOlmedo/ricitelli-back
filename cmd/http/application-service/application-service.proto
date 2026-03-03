@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package application;
 
-option go_package = "your/module/path/applicationpb";
+option go_package = "ricitelli-back/cmd/http/gen/application_service;applicationpb";
 
 import "google/protobuf/empty.proto";
 import "sale_order.proto";

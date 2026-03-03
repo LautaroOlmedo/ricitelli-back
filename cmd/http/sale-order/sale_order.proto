@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package sale_order;
 
-option go_package = "your/module/path/sale_orderpb";
+option go_package = "ricitelli-back/cmd/http/gen/sale_order;saleorderpb";
 
 import "google/protobuf/empty.proto";
 import "product.proto"; // Para el ID de productos en items
