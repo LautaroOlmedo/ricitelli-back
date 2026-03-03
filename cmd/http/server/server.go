@@ -249,7 +249,7 @@ func (s *Server) GetProductByID(
 	return &productpb.Product{
 		Id:   product.GetID(),
 		Name: product.GetName(),
-		Bom:  protoBOM,
+		Bods: protoBOM,
 	}, nil
 }
 
@@ -274,7 +274,7 @@ func (s *Server) GetProducts(
 		protoProducts = append(protoProducts, &productpb.Product{
 			Id:   product.GetID(),
 			Name: product.GetName(),
-			Bom:  protoBOM,
+			Bods: protoBOM,
 		})
 	}
 
