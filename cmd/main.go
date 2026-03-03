@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 	applicationpb "ricitelli-back/cmd/http/gen/application-service"
+	productpb "ricitelli-back/cmd/http/gen/product"
+	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
 	"ricitelli-back/cmd/http/server"
 	"ricitelli-back/config"
@@ -33,7 +35,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	svc := server.NewServer(applicationService)
+	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
+	productionorderpb.RegisterProductionOrderServiceServer(grpcServer, svc)
 	applicationpb.RegisterApplicationServiceServer(grpcServer, svc)
 
 	lis, socketErr := net.Listen("tcp", cfg.Port)

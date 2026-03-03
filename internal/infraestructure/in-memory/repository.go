@@ -178,7 +178,7 @@ func (r *InMemoryRepository) seedProducts() {
 			id:   "wine-malbec-001",
 			name: "Malbec Clásico",
 			bom: []valueObject.BillOfDrySupply{
-				{DrySupplyID: "botella", QuantityPerUnit: 1},
+				{DrySupplyID: "contraetiqueta_malbec", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_malbec", QuantityPerUnit: 1},
 			},
@@ -187,7 +187,7 @@ func (r *InMemoryRepository) seedProducts() {
 			id:   "wine-cabernet-002",
 			name: "Cabernet Premium",
 			bom: []valueObject.BillOfDrySupply{
-				{DrySupplyID: "botella", QuantityPerUnit: 1},
+				{DrySupplyID: "contraetiqueta_cabernet", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_cabernet", QuantityPerUnit: 2},
 				{DrySupplyID: "caja_premium", QuantityPerUnit: 1},
@@ -197,7 +197,7 @@ func (r *InMemoryRepository) seedProducts() {
 			id:   "wine-reserva-003",
 			name: "Reserva Especial",
 			bom: []valueObject.BillOfDrySupply{
-				{DrySupplyID: "botella_reserva", QuantityPerUnit: 1},
+				{DrySupplyID: "contraetiqueta_dorada", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho_reserva", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_dorada", QuantityPerUnit: 2},
 				{DrySupplyID: "caja_madera", QuantityPerUnit: 1},

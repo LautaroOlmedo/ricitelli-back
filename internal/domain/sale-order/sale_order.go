@@ -23,7 +23,7 @@ func NewSaleOrder(customerID string, items []valueObject.SaleOrderItem) (SaleOrd
 		customerID: customerID,
 		status:     "NEW",
 		items:      items,
-		createdAt:  time.Now().String(),
+		createdAt:  time.Now().UTC().Format(time.RFC3339),
 		active:     true,
 	}, nil
 }

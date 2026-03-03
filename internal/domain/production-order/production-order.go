@@ -17,12 +17,6 @@ type ProductionOrder struct {
 	active          bool
 }
 
-/*type ProductSnapshot struct {
-	productID   string
-	productName string
-	bomVersion  uint32
-}*/
-
 func NewProductionOrder(salesOrderID string, items []entities.ProductionItem) ProductionOrder {
 	return ProductionOrder{
 		ID:              uuid.New().String(),
@@ -30,7 +24,7 @@ func NewProductionOrder(salesOrderID string, items []entities.ProductionItem) Pr
 		operationNumber: "ProductionOrder",
 		status:          "IN PROGRESS",
 		items:           items,
-		createdAt:       time.Now().String(), //.UTC().Format(time.RFC3339),
+		createdAt:       time.Now().UTC().Format(time.RFC3339),
 		active:          true,
 	}
 
@@ -48,6 +42,20 @@ func (o *ProductionOrder) GetOperationNumber() string {
 	return o.operationNumber
 }
 
+func (o *ProductionOrder) GetCreatedAt() string {
+	return o.createdAt
+}
+
+func (o *ProductionOrder) GetItems() []entities.ProductionItem {
+	itemsCopy := make([]entities.ProductionItem, len(o.items))
+	copy(itemsCopy, o.items)
+	return itemsCopy
+}
+
+func (o *ProductionOrder) GetStatus() string {
+	return o.status
+}
+
 //func (o *ProductionOrder) GetDrySupplies() []*entities.DrySupply {
 //	var drySupplies []*entities.DrySupply
 //	for key, _ := range o.drySupplies {
@@ -55,3 +63,9 @@ func (o *ProductionOrder) GetOperationNumber() string {
 //	}
 //	return drySupplies
 //}
+
+/*type ProductSnapshot struct {
+	productID   string
+	productName string
+	bomVersion  uint32
+}*/
