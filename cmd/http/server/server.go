@@ -237,10 +237,10 @@ func (s *Server) GetProductByID(
 		return nil, status.Error(codes.NotFound, "product not found")
 	}
 
-	protoBOM := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
+	protoBODS := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
 
 	for _, bod := range product.GetBODS() {
-		protoBOM = append(protoBOM, &productpb.BillOfDrySupply{
+		protoBODS = append(protoBODS, &productpb.BillOfDrySupply{
 			DrySupplyId:     bod.DrySupplyID,
 			QuantityPerUnit: bod.QuantityPerUnit,
 		})
@@ -249,7 +249,7 @@ func (s *Server) GetProductByID(
 	return &productpb.Product{
 		Id:   product.GetID(),
 		Name: product.GetName(),
-		Bods: protoBOM,
+		Bods: protoBODS,
 	}, nil
 }
 
@@ -264,9 +264,9 @@ func (s *Server) GetProducts(
 	}
 	protoProducts := make([]*productpb.Product, 0, len(products))
 	for _, product := range products {
-		protoBOM := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
+		protoBODS := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
 		for _, bod := range product.GetBODS() {
-			protoBOM = append(protoBOM, &productpb.BillOfDrySupply{
+			protoBODS = append(protoBODS, &productpb.BillOfDrySupply{
 				DrySupplyId:     bod.DrySupplyID,
 				QuantityPerUnit: bod.QuantityPerUnit,
 			})
@@ -274,7 +274,7 @@ func (s *Server) GetProducts(
 		protoProducts = append(protoProducts, &productpb.Product{
 			Id:   product.GetID(),
 			Name: product.GetName(),
-			Bods: protoBOM,
+			Bods: protoBODS,
 		})
 	}
 

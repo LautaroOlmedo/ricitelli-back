@@ -172,12 +172,12 @@ func (r *InMemoryRepository) seedProducts() {
 	products := []struct {
 		id   string
 		name string
-		bom  []valueObject.BillOfDrySupply
+		bods []valueObject.BillOfDrySupply
 	}{
 		{
 			id:   "wine-malbec-001",
 			name: "Malbec Clásico",
-			bom: []valueObject.BillOfDrySupply{
+			bods: []valueObject.BillOfDrySupply{
 				{DrySupplyID: "contraetiqueta_malbec", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_malbec", QuantityPerUnit: 1},
@@ -186,7 +186,7 @@ func (r *InMemoryRepository) seedProducts() {
 		{
 			id:   "wine-cabernet-002",
 			name: "Cabernet Premium",
-			bom: []valueObject.BillOfDrySupply{
+			bods: []valueObject.BillOfDrySupply{
 				{DrySupplyID: "contraetiqueta_cabernet", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_cabernet", QuantityPerUnit: 2},
@@ -196,7 +196,7 @@ func (r *InMemoryRepository) seedProducts() {
 		{
 			id:   "wine-reserva-003",
 			name: "Reserva Especial",
-			bom: []valueObject.BillOfDrySupply{
+			bods: []valueObject.BillOfDrySupply{
 				{DrySupplyID: "contraetiqueta_dorada", QuantityPerUnit: 1},
 				{DrySupplyID: "corcho_reserva", QuantityPerUnit: 1},
 				{DrySupplyID: "etiqueta_dorada", QuantityPerUnit: 2},
@@ -206,7 +206,7 @@ func (r *InMemoryRepository) seedProducts() {
 	}
 
 	for _, p := range products {
-		productCreated, err := product.NewProductWithID(p.id, p.name, p.bom)
+		productCreated, err := product.NewProductWithID(p.id, p.name, p.bods)
 		if err != nil {
 			panic(err) // válido en seed
 		}
