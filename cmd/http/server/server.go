@@ -120,7 +120,7 @@ func (s *Server) GetSaleOrders(
 			Id:         order.GetID(),
 			CustomerId: order.GetCustomerID(),
 			Items:      items,
-			CreatedAt:  order.GetCreatedAt(), // si es string
+			CreatedAt:  order.GetCreatedAt(),
 		})
 	}
 
@@ -211,7 +211,7 @@ func (s *Server) GetProductionOrders(
 			Id:          order.GetID(),
 			SaleOrderId: order.GetSalesOrderID(),
 			Items:       protoItems,
-			Status:      order.GetStatus(), // necesita getter
+			Status:      order.GetStatus(),
 			CreatedAt:   order.GetCreatedAt(),
 		})
 	}
@@ -219,4 +219,12 @@ func (s *Server) GetProductionOrders(
 	return &productionorderpb.GetProductionOrdersResponse{
 		ProductionOrders: protoOrders,
 	}, nil
+}
+
+func (s *Server) GetProductByID(context.Context, *productpb.GetProductByIDRequest) (*productpb.Product, error) {
+	return nil, status.Error(codes.Unimplemented, "implementalo gato")
+}
+
+func (s *Server) GetProducts(context.Context, *empty.Empty) (*productpb.GetProductsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "implementalo gato")
 }
