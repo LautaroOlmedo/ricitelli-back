@@ -221,10 +221,64 @@ func (s *Server) GetProductionOrders(
 	}, nil
 }
 
-func (s *Server) GetProductByID(context.Context, *productpb.GetProductByIDRequest) (*productpb.Product, error) {
-	return nil, status.Error(codes.Unimplemented, "implementalo gato")
+func (s *Server) GetProductByID(
+	ctx context.Context,
+	request *productpb.GetProductByIDRequest,
+) (*productpb.Product, error) {
+
+	if request.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	product, err := s.ApplicationService.ProductService.GetProductByID(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	if product == nil {
+		return nil, status.Error(codes.NotFound, "product not found")
+	}
+
+	protoBOM := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
+
+	for _, bod := range product.GetBODS() {
+		protoBOM = append(protoBOM, &productpb.BillOfDrySupply{
+			DrySupplyId:     bod.DrySupplyID,
+			QuantityPerUnit: bod.QuantityPerUnit,
+		})
+	}
+
+	return &productpb.Product{
+		Id:   product.GetID(),
+		Name: product.GetName(),
+		Bom:  protoBOM,
+	}, nil
 }
 
-func (s *Server) GetProducts(context.Context, *empty.Empty) (*productpb.GetProductsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "implementalo gato")
+func (s *Server) GetProducts(
+	ctx context.Context,
+	_ *empty.Empty,
+) (*productpb.GetProductsResponse, error) {
+
+	products, err := s.ApplicationService.ProductService.GetProducts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	protoProducts := make([]*productpb.Product, 0, len(products))
+	for _, product := range products {
+		protoBOM := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
+		for _, bod := range product.GetBODS() {
+			protoBOM = append(protoBOM, &productpb.BillOfDrySupply{
+				DrySupplyId:     bod.DrySupplyID,
+				QuantityPerUnit: bod.QuantityPerUnit,
+			})
+		}
+		protoProducts = append(protoProducts, &productpb.Product{
+			Id:   product.GetID(),
+			Name: product.GetName(),
+			Bom:  protoBOM,
+		})
+	}
+
+	return &productpb.GetProductsResponse{
+		Products: protoProducts,
+	}, nil
 }

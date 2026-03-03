@@ -37,21 +37,21 @@ func NewProduct(name string, bom []valueObject.BillOfDrySupply) (Product, error)
 	}, nil
 }
 
-func NewProductWithID(id string, name string, bom []valueObject.BillOfDrySupply) (Product, error) {
+func NewProductWithID(id string, name string, bods []valueObject.BillOfDrySupply) (Product, error) {
 	if id == "" {
 		return Product{}, errors.New("invalid id")
 	}
 	if name == "" {
 		return Product{}, ErrInvalidName
 	}
-	if len(bom) == 0 {
+	if len(bods) == 0 {
 		return Product{}, ErrInvalidQuantityOfSupply
 	}
 
 	return Product{
 		id:     id,
 		name:   name,
-		bods:   bom,
+		bods:   bods,
 		active: true,
 	}, nil
 }
@@ -62,6 +62,16 @@ func (p *Product) GetID() string {
 
 func (p *Product) GetName() string {
 	return p.name
+}
+
+func (p *Product) GetBODS() []valueObject.BillOfDrySupply {
+	itemsCopy := make([]valueObject.BillOfDrySupply, len(p.bods))
+	copy(itemsCopy, p.bods)
+	return itemsCopy
+}
+
+func (p *Product) GetActive() bool {
+	return p.active
 }
 
 func (p *Product) CalculateRequirements(qty uint64) []valueObject.MaterialRequirement {
