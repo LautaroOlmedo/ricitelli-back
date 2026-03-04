@@ -12,6 +12,7 @@ import (
 	repository "ricitelli-back/internal/infraestructure/in-memory"
 	application_service "ricitelli-back/internal/service/application-service"
 	"ricitelli-back/internal/service/product"
+	product_inventory "ricitelli-back/internal/service/product-inventory"
 	production_order "ricitelli-back/internal/service/production-order"
 	sale_order "ricitelli-back/internal/service/sale-order"
 
@@ -28,11 +29,12 @@ func main() {
 
 	// service layer
 	productService := product.NewProductService(memoryRepo)
+	productInventoryService := product_inventory.NewProductInventoryService(memoryRepo)
 	productionOrderService := production_order.NewProductionOrderService(memoryRepo)
 	saleOrderService := sale_order.NewSaleOrderService(memoryRepo)
+	applicationService := application_service.NewApplicationService(saleOrderService, productionOrderService, productService, productInventoryService)
 
-	applicationService := application_service.NewApplicationService(productService, productionOrderService, saleOrderService)
-
+	// http layer
 	grpcServer := grpc.NewServer()
 	svc := server.NewServer(applicationService)
 	productpb.RegisterProductServiceServer(grpcServer, svc)

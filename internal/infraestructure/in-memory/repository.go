@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"ricitelli-back/internal/domain/product"
+	product_inventory "ricitelli-back/internal/domain/product-inventory"
 	production_order "ricitelli-back/internal/domain/production-order"
 	sale_order "ricitelli-back/internal/domain/sale-order"
 	"ricitelli-back/internal/entities"
@@ -16,10 +17,12 @@ type InMemoryRepository struct {
 	saleOrdersMutex       sync.RWMutex
 	productionOrdersMutex sync.RWMutex
 	productsMutex         sync.RWMutex
+	productInventoryMutex sync.RWMutex
 
 	SaleOrders       []sale_order.SaleOrder
 	ProductionOrders []production_order.ProductionOrder
 	Products         []product.Product
+	ProductInventory []product_inventory.ProductInventory
 }
 
 func NewInMemoryRepository() *InMemoryRepository {
@@ -27,9 +30,11 @@ func NewInMemoryRepository() *InMemoryRepository {
 		SaleOrders:       make([]sale_order.SaleOrder, 0),
 		ProductionOrders: make([]production_order.ProductionOrder, 0),
 		Products:         make([]product.Product, 0),
+		ProductInventory: make([]product_inventory.ProductInventory, 0),
 	}
 
 	repo.seedProducts()
+	repo.seedProductInventory()
 
 	return repo
 }
@@ -165,6 +170,27 @@ func (r *InMemoryRepository) GetProducts(ctx context.Context) ([]product.Product
 }
 
 // ========================
+// ProductInventory
+// ========================
+
+func (r *InMemoryRepository) CreateProductInventory(prodInventory product_inventory.ProductInventory) error {
+	r.productionOrdersMutex.Lock()
+	defer r.productionOrdersMutex.Unlock()
+	r.ProductInventory = append(r.ProductInventory, prodInventory)
+	return nil
+}
+func (r *InMemoryRepository) GetProductInventory(productID string) (*product_inventory.ProductInventory, error) {
+	r.productionOrdersMutex.RLock()
+	defer r.productionOrdersMutex.RUnlock()
+	for i := range r.ProductInventory {
+		if r.ProductInventory[i].GetProductID() == productID {
+			return &r.ProductInventory[i], nil
+		}
+	}
+	return nil, errors.New("product inventory not found")
+}
+
+// ========================
 // MOCKS
 // ========================
 
@@ -212,5 +238,14 @@ func (r *InMemoryRepository) seedProducts() {
 		}
 
 		r.Products = append(r.Products, productCreated)
+	}
+}
+
+func (r *InMemoryRepository) seedProductInventory() {
+	for _, prod := range r.Products {
+		r.productInventoryMutex.Lock()
+		r.productInventoryMutex.Unlock()
+		prodInventory, _ := product_inventory.NewProductInventory(prod.GetID(), prod.GetID())
+		r.ProductInventory = append(r.ProductInventory, prodInventory)
 	}
 }

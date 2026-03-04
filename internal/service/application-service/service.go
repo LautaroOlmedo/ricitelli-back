@@ -3,6 +3,7 @@ package application_service
 import (
 	"context"
 	"ricitelli-back/internal/domain/product"
+	product_inventory "ricitelli-back/internal/domain/product-inventory"
 	production_order "ricitelli-back/internal/domain/production-order"
 	sale_order "ricitelli-back/internal/domain/sale-order"
 	"ricitelli-back/internal/entities"
@@ -30,16 +31,23 @@ type ProductService interface {
 	GetProducts(ctx context.Context) ([]product.Product, error)
 }
 
-type Service struct {
-	SaleOrderService       SaleOrderService
-	ProductionOrderService ProductionOrderService
-	ProductService         ProductService
+type ProductInventoryService interface {
+	CreateProductInventory(productID, sku string) error
+	GetProductInventory(productID string) (*product_inventory.ProductInventory, error)
 }
 
-func NewApplicationService(productService ProductService, productionOrderService ProductionOrderService, saleOrderService SaleOrderService) Service {
+type Service struct {
+	SaleOrderService        SaleOrderService
+	ProductionOrderService  ProductionOrderService
+	ProductService          ProductService
+	ProductInventoryService ProductInventoryService
+}
+
+func NewApplicationService(saleOrderService SaleOrderService, productionOrderService ProductionOrderService, productService ProductService, productInventoryService ProductInventoryService) Service {
 	return Service{
-		SaleOrderService:       saleOrderService,
-		ProductionOrderService: productionOrderService,
-		ProductService:         productService,
+		SaleOrderService:        saleOrderService,
+		ProductionOrderService:  productionOrderService,
+		ProductService:          productService,
+		ProductInventoryService: productInventoryService,
 	}
 }

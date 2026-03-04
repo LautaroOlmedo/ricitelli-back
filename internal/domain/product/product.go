@@ -14,9 +14,13 @@ var (
 
 // Product represents a manufacturable item defined by its identity, name, and its bill of materials (BODS).
 type Product struct {
-	id     string
-	name   string
-	bods   []valueObject.BillOfDrySupply
+	id   string
+	name string
+	bods []valueObject.BillOfDrySupply
+	// lineID string
+	// varietalID string
+	//sizeML uint | string
+	//vintageYear string
 	active bool
 }
 
@@ -74,12 +78,12 @@ func (p *Product) GetActive() bool {
 	return p.active
 }
 
+// CalculateRequirements ToDO: Handle correctly Box case
 func (p *Product) CalculateRequirements(qty uint64) []valueObject.MaterialRequirement {
 	var result []valueObject.MaterialRequirement
 
 	for _, item := range p.bods {
 		total := item.QuantityPerUnit * qty
-
 		result = append(result, valueObject.MaterialRequirement{
 			DrySupplyID: item.DrySupplyID,
 			Quantity:    total,
