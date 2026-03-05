@@ -4,20 +4,23 @@ import (
 	"context"
 
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
-
+	customerpb "ricitelli-back/cmd/http/gen/customer"
 	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
+	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply_domain "ricitelli-back/internal/domain/dry-supply"
 	production_order_domain "ricitelli-back/internal/domain/production-order"
 	sale_order_domain "ricitelli-back/internal/domain/sale-order"
 	application_service "ricitelli-back/internal/service/application-service"
+	customer_svc "ricitelli-back/internal/service/customer"
 	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
 	inventory_svc "ricitelli-back/internal/service/inventory"
 	valueObject "ricitelli-back/internal/value-object"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -30,22 +33,25 @@ type Server struct {
 	applicationpb.UnimplementedApplicationServiceServer
 	drysupplypb.UnimplementedDrySupplyServiceServer
 	inventorypb.UnimplementedInventoryServiceServer
-	//customerpb.UnimplementedCustomerServiceServer
+	customerpb.UnimplementedCustomerServiceServer
 
 	AppService       application_service.Service
 	DrySupplyService *dry_supply_svc.Service
 	InventoryService *inventory_svc.Service
+	CustomerService  *customer_svc.Service
 }
 
 func NewServer(
 	appService application_service.Service,
 	drySupplyService *dry_supply_svc.Service,
 	inventoryService *inventory_svc.Service,
+	customerService *customer_svc.Service,
 ) *Server {
 	return &Server{
 		AppService:       appService,
 		DrySupplyService: drySupplyService,
 		InventoryService: inventoryService,
+		CustomerService:  customerService,
 	}
 }
 
@@ -446,5 +452,114 @@ func toProtoInventoryReport(r *inventory_svc.InventoryReport) *inventorypb.Inven
 	return &inventorypb.InventoryReport{
 		Products:        protoProducts,
 		DrySupplyAlerts: protoAlerts,
+	}
+}
+
+// ===== CustomerService =====
+
+func (s *Server) CreateCustomer(ctx context.Context, req *customerpb.CreateCustomerRequest) (*customerpb.Customer, error) {
+	if req.SocialReason == "" {
+		return nil, status.Error(codes.InvalidArgument, "social_reason is required")
+	}
+	c, err := s.CustomerService.CreateCustomer(ctx, customer_domain.NewCustomerParams{
+		SocialReason: req.SocialReason,
+		MarketType:   customer_domain.MarketType(req.MarketType),
+		Group:        customer_domain.Group(req.Group),
+	})
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return toProtoCustomer(&c), nil
+}
+
+func (s *Server) GetCustomerByID(ctx context.Context, req *customerpb.GetCustomerByIDRequest) (*customerpb.Customer, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	c, err := s.CustomerService.GetCustomerByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "customer not found")
+	}
+	return toProtoCustomer(c), nil
+}
+
+func (s *Server) GetCustomers(ctx context.Context, _ *empty.Empty) (*customerpb.GetCustomersResponse, error) {
+	customers, err := s.CustomerService.GetCustomers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	proto := make([]*customerpb.Customer, 0, len(customers))
+	for i := range customers {
+		proto = append(proto, toProtoCustomer(&customers[i]))
+	}
+	return &customerpb.GetCustomersResponse{Customers: proto}, nil
+}
+
+func (s *Server) DeactivateCustomer(ctx context.Context, req *customerpb.DeactivateCustomerRequest) (*customerpb.Customer, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	c, err := s.CustomerService.DeactivateCustomer(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return toProtoCustomer(c), nil
+}
+
+func (s *Server) PlaceOrder(ctx context.Context, req *customerpb.PlaceOrderRequest) (*saleorderpb.SaleOrder, error) {
+	if req.CustomerId == "" {
+		return nil, status.Error(codes.InvalidArgument, "customer_id is required")
+	}
+	items := make([]valueObject.SaleOrderItem, 0, len(req.Items))
+	for _, item := range req.Items {
+		items = append(items, valueObject.SaleOrderItem{
+			ProductID: item.ProductId,
+			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice,
+		})
+	}
+	order, err := s.CustomerService.PlaceOrder(ctx, customer_svc.PlaceOrderParams{
+		CustomerID:         req.CustomerId,
+		Items:              items,
+		Currency:           sale_order_domain.Currency(req.Currency),
+		DestinationCountry: req.DestinationCountry,
+		SaleType:           sale_order_domain.SaleType(req.SaleType),
+	})
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return toProtoSaleOrder(&order), nil
+}
+
+func (s *Server) GetOrdersByCustomer(ctx context.Context, req *customerpb.GetOrdersByCustomerRequest) (*customerpb.GetOrdersByCustomerResponse, error) {
+	if req.CustomerId == "" {
+		return nil, status.Error(codes.InvalidArgument, "customer_id is required")
+	}
+	orders, err := s.CustomerService.GetOrdersByCustomer(ctx, req.CustomerId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	protoOrders := make([]*saleorderpb.SaleOrder, 0, len(orders))
+	for i := range orders {
+		protoOrders = append(protoOrders, toProtoSaleOrder(&orders[i]))
+	}
+	return &customerpb.GetOrdersByCustomerResponse{Orders: protoOrders}, nil
+}
+
+func toProtoCustomer(c interface {
+	GetID() string
+	GetSocialReason() string
+	GetMarketType() customer_domain.MarketType
+	GetGroup() customer_domain.Group
+	IsActive() bool
+	GetCreatedAt() string
+}) *customerpb.Customer {
+	return &customerpb.Customer{
+		Id:           c.GetID(),
+		SocialReason: c.GetSocialReason(),
+		MarketType:   string(c.GetMarketType()),
+		Group:        string(c.GetGroup()),
+		Active:       c.IsActive(),
+		CreatedAt:    c.GetCreatedAt(),
 	}
 }

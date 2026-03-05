@@ -5,6 +5,7 @@ import (
 	"net"
 
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
+	customerpb "ricitelli-back/cmd/http/gen/customer"
 	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
@@ -54,7 +55,7 @@ func main() {
 
 	// gRPC server
 	grpcServer := grpc.NewServer()
-	svc := server.NewServer(applicationService, drySupplyService, inventoryService)
+	svc := server.NewServer(applicationService, drySupplyService, inventoryService, customerService)
 
 	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
@@ -62,6 +63,7 @@ func main() {
 	applicationpb.RegisterApplicationServiceServer(grpcServer, svc)
 	drysupplypb.RegisterDrySupplyServiceServer(grpcServer, svc)
 	inventorypb.RegisterInventoryServiceServer(grpcServer, svc)
+	customerpb.RegisterCustomerServiceServer(grpcServer, svc)
 
 	lis, err := net.Listen("tcp", cfg.Port)
 	if err != nil {
