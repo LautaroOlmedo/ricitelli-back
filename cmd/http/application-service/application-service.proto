@@ -4,23 +4,24 @@ package application;
 
 option go_package = "ricitelli-back/cmd/http/gen/application_service;applicationpb";
 
-import "google/protobuf/empty.proto";
 import "sale_order.proto";
-import "production_order.proto";
-import "product.proto";
 
-// Request para crear orden de venta + producción
+// CreateOrderRequest creates a SaleOrder + ProductionOrder atomically.
 message CreateOrderRequest {
-  string customer_id = 1;
+  string customer_id         = 1;
   repeated sale_order.SaleOrderItem items = 2;
+  // Commercial context — same fields as CreateSaleOrderRequest
+  string currency            = 3; // ARS | USD | CAD | EUR
+  string market              = 4; // DOMESTIC | EXPORT
+  string destination_country = 5;
+  string sale_type           = 6; // SALE | SAMPLE_CUSTOMS | GIFT | INTERNAL | COMMERCIAL_SAMPLE
+  float  unit_price          = 7; // default price when items don't specify
 }
 
-// Respuesta simple (OK)
 message CreateOrderResponse {
-  string message = 1; // "Order created"
+  string message = 1;
 }
 
-// Servicio de aplicación
 service ApplicationService {
   rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
 }

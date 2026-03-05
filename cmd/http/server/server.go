@@ -2,16 +2,24 @@ package server
 
 import (
 	"context"
-	applicationpb "ricitelli-back/cmd/http/gen/application-service"
+
+	applicationpb "ricitelli-back/cmd/http/gen/application_service"
+	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
+	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
+	dry_supply_domain "ricitelli-back/internal/domain/dry-supply"
+	production_order_domain "ricitelli-back/internal/domain/production-order"
+	sale_order_domain "ricitelli-back/internal/domain/sale-order"
 	application_service "ricitelli-back/internal/service/application-service"
+	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
+	inventory_svc "ricitelli-back/internal/service/inventory"
 	valueObject "ricitelli-back/internal/value-object"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type Server struct {
@@ -19,266 +27,422 @@ type Server struct {
 	saleorderpb.UnimplementedSaleOrderServiceServer
 	productionorderpb.UnimplementedProductionOrderServiceServer
 	applicationpb.UnimplementedApplicationServiceServer
+	drysupplypb.UnimplementedDrySupplyServiceServer
+	inventorypb.UnimplementedInventoryServiceServer
 
-	ApplicationService application_service.Service
+	AppService       application_service.Service
+	DrySupplyService *dry_supply_svc.Service
+	InventoryService *inventory_svc.Service
 }
 
-func NewServer(applicationService application_service.Service) *Server {
-
+func NewServer(
+	appService application_service.Service,
+	drySupplyService *dry_supply_svc.Service,
+	inventoryService *inventory_svc.Service,
+) *Server {
 	return &Server{
-		ApplicationService: applicationService,
+		AppService:       appService,
+		DrySupplyService: drySupplyService,
+		InventoryService: inventoryService,
 	}
 }
 
-func (s *Server) CreateOrder(
-	ctx context.Context,
-	request *applicationpb.CreateOrderRequest,
-) (*applicationpb.CreateOrderResponse, error) {
-	if request.CustomerId == "" {
-		return nil, status.Error(codes.InvalidArgument, "invalid param")
+// ===== ApplicationService =====
+
+func (s *Server) CreateOrder(ctx context.Context, req *applicationpb.CreateOrderRequest) (*applicationpb.CreateOrderResponse, error) {
+	if req.CustomerId == "" {
+		return nil, status.Error(codes.InvalidArgument, "customer_id is required")
 	}
+	items := make([]application_service.OrderItem, 0, len(req.Items))
+	for _, item := range req.Items {
+		items = append(items, application_service.OrderItem{
+			ProductID: item.ProductId,
+			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice,
+		})
+	}
+	if err := s.AppService.CreateOrder(ctx, application_service.CreateOrderParams{
+		CustomerID:         req.CustomerId,
+		Items:              items,
+		Currency:           sale_order_domain.Currency(req.Currency),
+		Market:             sale_order_domain.Market(req.Market),
+		DestinationCountry: req.DestinationCountry,
+		SaleType:           sale_order_domain.SaleType(req.SaleType),
+	}); err != nil {
+		return nil, err
+	}
+	return &applicationpb.CreateOrderResponse{Message: "order created"}, nil
+}
 
-	items := make([]valueObject.SaleOrderItem, 0, len(request.Items))
+// ===== SaleOrderService =====
 
-	for _, item := range request.Items {
+func (s *Server) CreateSaleOrder(ctx context.Context, req *saleorderpb.CreateSaleOrderRequest) (*saleorderpb.SaleOrder, error) {
+	if req.CustomerId == "" {
+		return nil, status.Error(codes.InvalidArgument, "customer_id is required")
+	}
+	items := make([]valueObject.SaleOrderItem, 0, len(req.Items))
+	for _, item := range req.Items {
 		items = append(items, valueObject.SaleOrderItem{
 			ProductID: item.ProductId,
 			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice,
 		})
 	}
-
-	err := s.ApplicationService.CreateOrder(
-		ctx,
-		request.CustomerId,
-		items,
-	)
-
+	order, err := s.AppService.SaleOrderService.CreateSaleOrder(ctx, sale_order_domain.NewSaleOrderParams{
+		CustomerID:         req.CustomerId,
+		Items:              items,
+		Currency:           sale_order_domain.Currency(req.Currency),
+		Market:             sale_order_domain.Market(req.Market),
+		DestinationCountry: req.DestinationCountry,
+		SaleType:           sale_order_domain.SaleType(req.SaleType),
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	return &applicationpb.CreateOrderResponse{}, nil
+	return toProtoSaleOrder(&order), nil
 }
 
-func (s *Server) GetSaleOrderByID(
-	ctx context.Context,
-	request *saleorderpb.GetSaleOrderByIDRequest,
-) (*saleorderpb.SaleOrder, error) {
-
-	if request.Id == "" {
+func (s *Server) GetSaleOrderByID(ctx context.Context, req *saleorderpb.GetSaleOrderByIDRequest) (*saleorderpb.SaleOrder, error) {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
+	order, err := s.AppService.SaleOrderService.GetSaleOrderByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "sale order not found")
+	}
+	return toProtoSaleOrder(order), nil
+}
 
-	order, err := s.ApplicationService.SaleOrderService.GetSaleOrderByID(ctx, request.Id)
+func (s *Server) GetSaleOrders(ctx context.Context, _ *emptypb.Empty) (*saleorderpb.GetSaleOrdersResponse, error) {
+	orders, err := s.AppService.SaleOrderService.GetSaleOrders(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	if order == nil {
-		return nil, status.Error(codes.NotFound, "sale order not found")
+	protoOrders := make([]*saleorderpb.SaleOrder, 0, len(orders))
+	for i := range orders {
+		protoOrders = append(protoOrders, toProtoSaleOrder(&orders[i]))
 	}
+	return &saleorderpb.GetSaleOrdersResponse{SaleOrders: protoOrders}, nil
+}
 
-	items := make([]*saleorderpb.SaleOrderItem, 0, len(order.GetItems()))
-	for _, item := range order.GetItems() {
+func (s *Server) UpdateSaleOrderStatus(ctx context.Context, req *saleorderpb.UpdateSaleOrderStatusRequest) (*saleorderpb.SaleOrder, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	order, err := s.AppService.SaleOrderService.UpdateSaleOrderStatus(ctx, req.Id, sale_order_domain.Status(req.Status))
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return toProtoSaleOrder(order), nil
+}
+
+func toProtoSaleOrder(o *sale_order_domain.SaleOrder) *saleorderpb.SaleOrder {
+	items := make([]*saleorderpb.SaleOrderItem, 0, len(o.GetItems()))
+	for _, item := range o.GetItems() {
 		items = append(items, &saleorderpb.SaleOrderItem{
 			ProductId: item.ProductID,
 			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice,
 		})
 	}
-
 	return &saleorderpb.SaleOrder{
-		Id:         order.GetID(),
-		CustomerId: order.GetCustomerID(),
-		Items:      items,
-		CreatedAt:  order.GetCreatedAt(),
-	}, nil
+		Id:                 o.GetID(),
+		CustomerId:         o.GetCustomerID(),
+		Status:             string(o.GetStatus()),
+		Items:              items,
+		CreatedAt:          o.GetCreatedAt(),
+		Currency:           string(o.GetCurrency()),
+		Market:             string(o.GetMarket()),
+		DestinationCountry: o.GetDestinationCountry(),
+		SaleType:           string(o.GetSaleType()),
+	}
 }
 
-func (s *Server) GetSaleOrders(
-	ctx context.Context,
-	_ *empty.Empty,
-) (*saleorderpb.GetSaleOrdersResponse, error) {
+// ===== ProductionOrderService =====
 
-	orders, err := s.ApplicationService.SaleOrderService.GetSaleOrders(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	responseOrders := make([]*saleorderpb.SaleOrder, 0, len(orders))
-
-	for _, order := range orders {
-
-		items := make([]*saleorderpb.SaleOrderItem, 0, len(order.GetItems()))
-		for _, item := range order.GetItems() {
-			items = append(items, &saleorderpb.SaleOrderItem{
-				ProductId: item.ProductID,
-				Quantity:  item.Quantity,
-			})
-		}
-
-		responseOrders = append(responseOrders, &saleorderpb.SaleOrder{
-			Id:         order.GetID(),
-			CustomerId: order.GetCustomerID(),
-			Items:      items,
-			CreatedAt:  order.GetCreatedAt(),
-		})
-	}
-
-	return &saleorderpb.GetSaleOrdersResponse{
-		SaleOrders: responseOrders,
-	}, nil
-}
-
-func (s *Server) GetProductionOrderByID(
-	ctx context.Context,
-	request *productionorderpb.GetProductionOrderByIDRequest,
-) (*productionorderpb.ProductionOrder, error) {
-
-	if request.Id == "" {
+func (s *Server) GetProductionOrderByID(ctx context.Context, req *productionorderpb.GetProductionOrderByIDRequest) (*productionorderpb.ProductionOrder, error) {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
+	order, err := s.AppService.ProductionOrderService.GetProductionOrderByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "production order not found")
+	}
+	return buildProtoProductionOrder(order), nil
+}
 
-	order, err := s.ApplicationService.
-		ProductionOrderService.
-		GetProductionOrderByID(ctx, request.Id)
+func (s *Server) GetProductionOrders(ctx context.Context, _ *emptypb.Empty) (*productionorderpb.GetProductionOrdersResponse, error) {
+	orders, err := s.AppService.ProductionOrderService.GetProductionOrders(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	if order == nil {
-		return nil, status.Error(codes.NotFound, "production order not found")
+	protoOrders := make([]*productionorderpb.ProductionOrder, 0, len(orders))
+	for i := range orders {
+		protoOrders = append(protoOrders, buildProtoProductionOrder(&orders[i]))
 	}
+	return &productionorderpb.GetProductionOrdersResponse{ProductionOrders: protoOrders}, nil
+}
+
+func buildProtoProductionOrder(order *production_order_domain.ProductionOrder) *productionorderpb.ProductionOrder {
 	protoItems := make([]*productionorderpb.ProductionItem, 0, len(order.GetItems()))
-
 	for _, item := range order.GetItems() {
-		requirements := make([]*productionorderpb.MaterialRequirement, 0, len(item.Requirements))
-
-		for _, req := range item.Requirements {
-			requirements = append(requirements, &productionorderpb.MaterialRequirement{
-				DrySupplyId: req.DrySupplyID,
-				Quantity:    req.Quantity,
+		reqs := make([]*productionorderpb.MaterialRequirement, 0, len(item.Requirements))
+		for _, r := range item.Requirements {
+			reqs = append(reqs, &productionorderpb.MaterialRequirement{
+				DrySupplyId: r.DrySupplyID,
+				Quantity:    r.Quantity,
 			})
 		}
 		protoItems = append(protoItems, &productionorderpb.ProductionItem{
 			ProductId:    item.ProductID,
 			Quantity:     item.Quantity,
-			Requirements: requirements,
+			Requirements: reqs,
 		})
 	}
-
 	return &productionorderpb.ProductionOrder{
 		Id:          order.GetID(),
 		SaleOrderId: order.GetSalesOrderID(),
-		Items:       protoItems,
 		Status:      order.GetStatus(),
 		CreatedAt:   order.GetCreatedAt(),
-	}, nil
+		Items:       protoItems,
+	}
 }
 
-func (s *Server) GetProductionOrders(
-	ctx context.Context,
-	_ *empty.Empty,
-) (*productionorderpb.GetProductionOrdersResponse, error) {
+// ===== ProductService =====
 
-	orders, err := s.ApplicationService.
-		ProductionOrderService.
-		GetProductionOrders(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	protoOrders := make([]*productionorderpb.ProductionOrder, 0, len(orders))
-
-	for _, order := range orders {
-		protoItems := make([]*productionorderpb.ProductionItem, 0, len(order.GetItems()))
-		for _, item := range order.GetItems() {
-			requirements := make([]*productionorderpb.MaterialRequirement, 0, len(item.Requirements))
-
-			for _, req := range item.Requirements {
-				requirements = append(requirements, &productionorderpb.MaterialRequirement{
-					DrySupplyId: req.DrySupplyID,
-					Quantity:    req.Quantity,
-				})
-			}
-			protoItems = append(protoItems, &productionorderpb.ProductionItem{
-				ProductId:    item.ProductID,
-				Quantity:     item.Quantity,
-				Requirements: requirements,
-			})
-		}
-
-		protoOrders = append(protoOrders, &productionorderpb.ProductionOrder{
-			Id:          order.GetID(),
-			SaleOrderId: order.GetSalesOrderID(),
-			Items:       protoItems,
-			Status:      order.GetStatus(),
-			CreatedAt:   order.GetCreatedAt(),
-		})
-	}
-
-	return &productionorderpb.GetProductionOrdersResponse{
-		ProductionOrders: protoOrders,
-	}, nil
-}
-
-func (s *Server) GetProductByID(
-	ctx context.Context,
-	request *productpb.GetProductByIDRequest,
-) (*productpb.Product, error) {
-
-	if request.Id == "" {
+func (s *Server) GetProductByID(ctx context.Context, req *productpb.GetProductByIDRequest) (*productpb.Product, error) {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	product, err := s.ApplicationService.ProductService.GetProductByID(ctx, request.Id)
+	p, err := s.AppService.ProductService.GetProductByID(ctx, req.Id)
 	if err != nil {
-		return nil, err
-	}
-	if product == nil {
 		return nil, status.Error(codes.NotFound, "product not found")
 	}
-
-	protoBODS := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
-
-	for _, bod := range product.GetBODS() {
-		protoBODS = append(protoBODS, &productpb.BillOfDrySupply{
-			DrySupplyId:     bod.DrySupplyID,
-			QuantityPerUnit: bod.QuantityPerUnit,
-		})
-	}
-
-	return &productpb.Product{
-		Id:   product.GetID(),
-		Name: product.GetName(),
-		Bods: protoBODS,
-	}, nil
+	return toProtoProduct(p), nil
 }
 
-func (s *Server) GetProducts(
-	ctx context.Context,
-	_ *empty.Empty,
-) (*productpb.GetProductsResponse, error) {
-
-	products, err := s.ApplicationService.ProductService.GetProducts(ctx)
+func (s *Server) GetProducts(ctx context.Context, _ *emptypb.Empty) (*productpb.GetProductsResponse, error) {
+	products, err := s.AppService.ProductService.GetProducts(ctx)
 	if err != nil {
 		return nil, err
 	}
 	protoProducts := make([]*productpb.Product, 0, len(products))
-	for _, product := range products {
-		protoBODS := make([]*productpb.BillOfDrySupply, 0, len(product.GetBODS()))
-		for _, bod := range product.GetBODS() {
-			protoBODS = append(protoBODS, &productpb.BillOfDrySupply{
-				DrySupplyId:     bod.DrySupplyID,
-				QuantityPerUnit: bod.QuantityPerUnit,
-			})
-		}
-		protoProducts = append(protoProducts, &productpb.Product{
-			Id:   product.GetID(),
-			Name: product.GetName(),
-			Bods: protoBODS,
+	for i := range products {
+		protoProducts = append(protoProducts, toProtoProduct(&products[i]))
+	}
+	return &productpb.GetProductsResponse{Products: protoProducts}, nil
+}
+
+func (s *Server) CreateProduct(ctx context.Context, req *productpb.CreateProductRequest) (*emptypb.Empty, error) {
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	bods := make([]valueObject.BillOfDrySupply, 0, len(req.Bods))
+	for _, b := range req.Bods {
+		bods = append(bods, valueObject.BillOfDrySupply{
+			DrySupplyID:     b.DrySupplyId,
+			QuantityPerUnit: b.QuantityPerUnit,
 		})
 	}
+	if err := s.AppService.ProductService.CreateProduct(ctx, req.Name, bods); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
 
-	return &productpb.GetProductsResponse{
-		Products: protoProducts,
+func toProtoProduct(p interface {
+	GetID() string
+	GetName() string
+	GetBODS() []valueObject.BillOfDrySupply
+}) *productpb.Product {
+	bods := make([]*productpb.BillOfDrySupply, 0, len(p.GetBODS()))
+	for _, b := range p.GetBODS() {
+		bods = append(bods, &productpb.BillOfDrySupply{
+			DrySupplyId:     b.DrySupplyID,
+			QuantityPerUnit: b.QuantityPerUnit,
+		})
+	}
+	return &productpb.Product{Id: p.GetID(), Name: p.GetName(), Bods: bods}
+}
+
+// ===== DrySupplyService =====
+
+func (s *Server) CreateDrySupply(ctx context.Context, req *drysupplypb.CreateDrySupplyRequest) (*drysupplypb.DrySupply, error) {
+	if req.Code == "" || req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "code and name are required")
+	}
+	ds, err := s.DrySupplyService.CreateDrySupply(ctx, req.Code, req.Name, dry_supply_domain.Category(req.Category), req.Unit)
+	if err != nil {
+		return nil, err
+	}
+	return toProtoDrySupply(ds), nil
+}
+
+func (s *Server) GetDrySupplyByID(ctx context.Context, req *drysupplypb.GetDrySupplyByIDRequest) (*drysupplypb.DrySupply, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	ds, err := s.DrySupplyService.GetDrySupplyByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "dry supply not found")
+	}
+	return toProtoDrySupply(ds), nil
+}
+
+func (s *Server) GetDrySupplies(ctx context.Context, _ *emptypb.Empty) (*drysupplypb.GetDrySuppliesResponse, error) {
+	supplies, err := s.DrySupplyService.GetDrySupplies(ctx)
+	if err != nil {
+		return nil, err
+	}
+	proto := make([]*drysupplypb.DrySupply, 0, len(supplies))
+	for i := range supplies {
+		proto = append(proto, toProtoDrySupply(&supplies[i]))
+	}
+	return &drysupplypb.GetDrySuppliesResponse{DrySupplies: proto}, nil
+}
+
+func (s *Server) AddStock(ctx context.Context, req *drysupplypb.AddStockRequest) (*emptypb.Empty, error) {
+	if err := s.DrySupplyService.AddStock(ctx, req.DrySupplyId, req.Quantity, req.Reference); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) GetStockTricapa(ctx context.Context, req *drysupplypb.GetStockTricapaRequest) (*drysupplypb.StockTricapa, error) {
+	t, err := s.DrySupplyService.GetStockTricapa(ctx, req.DrySupplyId)
+	if err != nil {
+		return nil, err
+	}
+	return &drysupplypb.StockTricapa{
+		DrySupplyId:    t.DrySupplyID,
+		Code:           t.DrySupplyCode,
+		Name:           t.DrySupplyName,
+		PhysicalStock:  t.Physical,
+		CommittedStock: t.Committed,
+		AvailableStock: t.Available,
 	}, nil
+}
+
+func (s *Server) CommitStock(ctx context.Context, req *drysupplypb.CommitStockRequest) (*emptypb.Empty, error) {
+	if err := s.DrySupplyService.CommitStock(ctx, req.DrySupplyId, req.Quantity, req.ProductionOrderId); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) ReleaseStock(ctx context.Context, req *drysupplypb.ReleaseStockRequest) (*emptypb.Empty, error) {
+	if err := s.DrySupplyService.ReleaseStock(ctx, req.DrySupplyId, req.Quantity, req.Reference); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) ConsumeStock(ctx context.Context, req *drysupplypb.ConsumeStockRequest) (*emptypb.Empty, error) {
+	if err := s.DrySupplyService.ConsumeStock(ctx, req.DrySupplyId, req.Quantity, req.Reference); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func toProtoDrySupply(ds interface {
+	GetID() string
+	GetCode() string
+	GetName() string
+	GetCategory() dry_supply_domain.Category
+	GetUnit() string
+}) *drysupplypb.DrySupply {
+	return &drysupplypb.DrySupply{
+		Id:       ds.GetID(),
+		Code:     ds.GetCode(),
+		Name:     ds.GetName(),
+		Category: string(ds.GetCategory()),
+		Unit:     ds.GetUnit(),
+	}
+}
+
+// ===== InventoryService =====
+
+func (s *Server) GetInventoryReport(ctx context.Context, _ *emptypb.Empty) (*inventorypb.InventoryReport, error) {
+	report, err := s.InventoryService.GetInventoryReport(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return toProtoInventoryReport(report), nil
+}
+
+func (s *Server) GetLowStockAlerts(ctx context.Context, _ *emptypb.Empty) (*inventorypb.InventoryReport, error) {
+	alerts, err := s.InventoryService.GetLowStockAlerts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	protoAlerts := make([]*inventorypb.DrySupplyAlert, 0, len(alerts))
+	for _, a := range alerts {
+		protoAlerts = append(protoAlerts, &inventorypb.DrySupplyAlert{
+			DrySupplyId: a.DrySupplyID,
+			Code:        a.Code,
+			Name:        a.Name,
+			Physical:    a.Physical,
+			Committed:   a.Committed,
+			Available:   a.Available,
+			IsLow:       a.IsLow,
+		})
+	}
+	return &inventorypb.InventoryReport{DrySupplyAlerts: protoAlerts}, nil
+}
+
+func (s *Server) ConvertSVtoPT(ctx context.Context, req *inventorypb.ConvertSVtoPTRequest) (*emptypb.Empty, error) {
+	if req.ProductId == "" || req.Quantity == 0 {
+		return nil, status.Error(codes.InvalidArgument, "product_id and quantity are required")
+	}
+	if err := s.InventoryService.ConvertSVtoPT(ctx, req.ProductId, req.Quantity, req.LotNumber); err != nil {
+		return nil, err
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) GetProductTricapa(ctx context.Context, req *inventorypb.GetProductTricapaRequest) (*inventorypb.ProductTricapa, error) {
+	t, err := s.InventoryService.GetProductTricapa(ctx, req.ProductId)
+	if err != nil {
+		return nil, err
+	}
+	return &inventorypb.ProductTricapa{
+		ProductId:        t.ProductID,
+		ProductName:      t.ProductName,
+		Sku:              t.SKU,
+		UndressedStock:   t.UndressedStock,
+		DressedPhysical:  t.DressedPhysical,
+		DressedCommitted: t.DressedCommitted,
+		DressedAvailable: t.DressedAvailable,
+	}, nil
+}
+
+func toProtoInventoryReport(r *inventory_svc.InventoryReport) *inventorypb.InventoryReport {
+	protoProducts := make([]*inventorypb.ProductTricapa, 0, len(r.Products))
+	for _, p := range r.Products {
+		protoProducts = append(protoProducts, &inventorypb.ProductTricapa{
+			ProductId:        p.ProductID,
+			ProductName:      p.ProductName,
+			Sku:              p.SKU,
+			UndressedStock:   p.UndressedStock,
+			DressedPhysical:  p.DressedPhysical,
+			DressedCommitted: p.DressedCommitted,
+			DressedAvailable: p.DressedAvailable,
+		})
+	}
+	protoAlerts := make([]*inventorypb.DrySupplyAlert, 0, len(r.DrySupplyAlerts))
+	for _, a := range r.DrySupplyAlerts {
+		protoAlerts = append(protoAlerts, &inventorypb.DrySupplyAlert{
+			DrySupplyId: a.DrySupplyID,
+			Code:        a.Code,
+			Name:        a.Name,
+			Physical:    a.Physical,
+			Committed:   a.Committed,
+			Available:   a.Available,
+			IsLow:       a.IsLow,
+		})
+	}
+	return &inventorypb.InventoryReport{
+		Products:        protoProducts,
+		DrySupplyAlerts: protoAlerts,
+	}
 }

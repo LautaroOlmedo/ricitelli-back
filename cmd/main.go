@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 	"net"
-	applicationpb "ricitelli-back/cmd/http/gen/application-service"
+
+	applicationpb "ricitelli-back/cmd/http/gen/application_service"
+	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
+	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
@@ -11,6 +14,8 @@ import (
 	"ricitelli-back/config"
 	repository "ricitelli-back/internal/infraestructure/in-memory"
 	application_service "ricitelli-back/internal/service/application-service"
+	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
+	inventory_svc "ricitelli-back/internal/service/inventory"
 	"ricitelli-back/internal/service/product"
 	product_inventory "ricitelli-back/internal/service/product-inventory"
 	production_order "ricitelli-back/internal/service/production-order"
@@ -19,37 +24,49 @@ import (
 	"google.golang.org/grpc"
 )
 
-// TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
 func main() {
 	cfg := config.LoadConfig()
 
-	// repository layer
+	// Repository layer (shared in-memory store)
 	memoryRepo := repository.NewInMemoryRepository()
 
-	// service layer
+	// Domain services
 	productService := product.NewProductService(memoryRepo)
 	productInventoryService := product_inventory.NewProductInventoryService(memoryRepo)
 	productionOrderService := production_order.NewProductionOrderService(memoryRepo)
 	saleOrderService := sale_order.NewSaleOrderService(memoryRepo)
-	applicationService := application_service.NewApplicationService(saleOrderService, productionOrderService, productService, productInventoryService)
+	drySupplyService := dry_supply_svc.NewDrySupplyService(memoryRepo)
 
-	// http layer
+	// Application (orchestration) service
+	applicationService := application_service.NewApplicationService(
+		saleOrderService,
+		productionOrderService,
+		productService,
+		productInventoryService,
+		drySupplyService,
+	)
+
+	// Inventory service (cross-domain tricapa reads)
+	inventoryService := inventory_svc.NewInventoryService(memoryRepo, memoryRepo, memoryRepo)
+
+	// gRPC server
 	grpcServer := grpc.NewServer()
-	svc := server.NewServer(applicationService)
+	svc := server.NewServer(applicationService, drySupplyService, inventoryService)
+
 	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
 	productionorderpb.RegisterProductionOrderServiceServer(grpcServer, svc)
 	applicationpb.RegisterApplicationServiceServer(grpcServer, svc)
+	drysupplypb.RegisterDrySupplyServiceServer(grpcServer, svc)
+	inventorypb.RegisterInventoryServiceServer(grpcServer, svc)
 
-	lis, socketErr := net.Listen("tcp", cfg.Port)
-	if socketErr != nil {
-		log.Fatalf("failed to listen: %v", socketErr)
+	lis, err := net.Listen("tcp", cfg.Port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
 	}
 
 	log.Printf("gRPC server listening on %s\n", cfg.Port)
-	if serveErr := grpcServer.Serve(lis); serveErr != nil {
-		log.Fatalf("failed to serve: %v", serveErr)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
-
 }

@@ -1,0 +1,188 @@
+package inventory
+
+import (
+	"context"
+
+	dry_supply "ricitelli-back/internal/domain/dry-supply"
+	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
+	product_inventory "ricitelli-back/internal/domain/product-inventory"
+	productdomain "ricitelli-back/internal/domain/product"
+)
+
+// ProductTricapa holds tricapa metrics + undressed stock for a wine product.
+type ProductTricapa struct {
+	ProductID      string
+	ProductName    string
+	SKU            string
+	UndressedStock int64 // SV - Sin Vestir (physical)
+	DressedPhysical int64 // PT physical
+	DressedCommitted int64 // PT committed for sale orders
+	DressedAvailable int64 // PT available = physical - committed
+}
+
+// DrySupplyAlert flags a dry supply whose available stock is below required.
+type DrySupplyAlert struct {
+	DrySupplyID   string
+	Code          string
+	Name          string
+	Physical      int64
+	Committed     int64
+	Available     int64
+	IsLow         bool // available < lowStockThreshold
+}
+
+// InventoryReport consolidates all tricapa metrics.
+type InventoryReport struct {
+	Products         []ProductTricapa
+	DrySupplyAlerts  []DrySupplyAlert
+}
+
+type ProductStorage interface {
+	GetProducts(ctx context.Context) ([]productdomain.Product, error)
+	GetProductByID(ctx context.Context, id string) (*productdomain.Product, error)
+}
+
+type ProductInventoryStorage interface {
+	GetProductInventory(productID string) (*product_inventory.ProductInventory, error)
+	SaveProductInventory(inv product_inventory.ProductInventory) error
+}
+
+type DrySupplyStorage interface {
+	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
+	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
+	SaveDrySupplyInventory(ctx context.Context, inv dry_supply_inventory.DrySupplyInventory) error
+}
+
+const defaultLowStockThreshold = 500
+
+type Service struct {
+	productStorage   ProductStorage
+	productInventory ProductInventoryStorage
+	drySupplyStorage DrySupplyStorage
+}
+
+func NewInventoryService(
+	productStorage ProductStorage,
+	productInventory ProductInventoryStorage,
+	drySupplyStorage DrySupplyStorage,
+) *Service {
+	return &Service{
+		productStorage:   productStorage,
+		productInventory: productInventory,
+		drySupplyStorage: drySupplyStorage,
+	}
+}
+
+// GetInventoryReport returns a full tricapa snapshot for all products and dry supplies.
+func (s *Service) GetInventoryReport(ctx context.Context) (*InventoryReport, error) {
+	products, err := s.productStorage.GetProducts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var productTricapas []ProductTricapa
+	for _, p := range products {
+		inv, err := s.productInventory.GetProductInventory(p.GetID())
+		if err != nil {
+			// No inventory record yet — report zeros
+			productTricapas = append(productTricapas, ProductTricapa{
+				ProductID:   p.GetID(),
+				ProductName: p.GetName(),
+			})
+			continue
+		}
+		available, _ := inv.AvailableDressed()
+		productTricapas = append(productTricapas, ProductTricapa{
+			ProductID:        p.GetID(),
+			ProductName:      p.GetName(),
+			SKU:              inv.GetSku(),
+			UndressedStock:   inv.AvailableUndressed(),
+			DressedPhysical:  inv.PhysicalDressed(),
+			DressedCommitted: inv.CommittedDressed(),
+			DressedAvailable: available,
+		})
+	}
+
+	drySupplies, err := s.drySupplyStorage.GetDrySupplies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var alerts []DrySupplyAlert
+	for _, ds := range drySupplies {
+		inv, err := s.drySupplyStorage.GetDrySupplyInventory(ctx, ds.GetID())
+		if err != nil {
+			alerts = append(alerts, DrySupplyAlert{
+				DrySupplyID: ds.GetID(),
+				Code:        ds.GetCode(),
+				Name:        ds.GetName(),
+				IsLow:       true,
+			})
+			continue
+		}
+		available := inv.AvailableStock()
+		alerts = append(alerts, DrySupplyAlert{
+			DrySupplyID: ds.GetID(),
+			Code:        ds.GetCode(),
+			Name:        ds.GetName(),
+			Physical:    inv.PhysicalStock(),
+			Committed:   inv.CommittedStock(),
+			Available:   available,
+			IsLow:       available < defaultLowStockThreshold,
+		})
+	}
+
+	return &InventoryReport{
+		Products:        productTricapas,
+		DrySupplyAlerts: alerts,
+	}, nil
+}
+
+// GetProductTricapa returns tricapa metrics for a single product.
+func (s *Service) GetProductTricapa(ctx context.Context, productID string) (*ProductTricapa, error) {
+	p, err := s.productStorage.GetProductByID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+	inv, err := s.productInventory.GetProductInventory(p.GetID())
+	if err != nil {
+		return &ProductTricapa{ProductID: p.GetID(), ProductName: p.GetName()}, nil
+	}
+	available, _ := inv.AvailableDressed()
+	return &ProductTricapa{
+		ProductID:        p.GetID(),
+		ProductName:      p.GetName(),
+		SKU:              inv.GetSku(),
+		UndressedStock:   inv.AvailableUndressed(),
+		DressedPhysical:  inv.PhysicalDressed(),
+		DressedCommitted: inv.CommittedDressed(),
+		DressedAvailable: available,
+	}, nil
+}
+
+// ConvertSVtoPT converts undressed (SV) wine to dressed (PT) and assigns a lot number.
+func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity uint64, lotNumber string) error {
+	inv, err := s.productInventory.GetProductInventory(productID)
+	if err != nil {
+		return err
+	}
+	if err := inv.ConvertSVtoPT("manual-conversion", quantity, lotNumber); err != nil {
+		return err
+	}
+	return s.productInventory.SaveProductInventory(*inv)
+}
+
+// GetLowStockAlerts returns only the dry supply items below the stock threshold.
+func (s *Service) GetLowStockAlerts(ctx context.Context) ([]DrySupplyAlert, error) {
+	report, err := s.GetInventoryReport(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var alerts []DrySupplyAlert
+	for _, a := range report.DrySupplyAlerts {
+		if a.IsLow {
+			alerts = append(alerts, a)
+		}
+	}
+	return alerts, nil
+}

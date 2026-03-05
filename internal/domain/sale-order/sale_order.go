@@ -1,48 +1,145 @@
 package sale_order
 
 import (
-	valueObject "ricitelli-back/internal/value-object"
+	"errors"
 	"time"
+
+	valueObject "ricitelli-back/internal/value-object"
 
 	"github.com/google/uuid"
 )
 
-// SaleOrder represents the aggregate root that models a sales order made by a customer, including its status and associated items.
+// Status pipeline: NEW → CONFIRMED → INVOICED → DISPATCHED (or CANCELLED)
+type Status string
+
+const (
+	StatusNew        Status = "NEW"
+	StatusConfirmed  Status = "CONFIRMED"
+	StatusInvoiced   Status = "INVOICED"
+	StatusDispatched Status = "DISPATCHED"
+	StatusCancelled  Status = "CANCELLED"
+)
+
+// Currency supported currencies
+type Currency string
+
+const (
+	CurrencyARS Currency = "ARS" // Argentine Peso
+	CurrencyUSD Currency = "USD" // US Dollar
+	CurrencyCAD Currency = "CAD" // Canadian Dollar
+	CurrencyEUR Currency = "EUR" // Euro (UK, EU exports)
+)
+
+// Market differentiates domestic vs export orders
+type Market string
+
+const (
+	MarketDomestic Market = "DOMESTIC"
+	MarketExport   Market = "EXPORT"
+)
+
+// SaleType classifies the exit reason (for non-distorting commercial revenue)
+type SaleType string
+
+const (
+	SaleTypeRegular          SaleType = "SALE"              // regular commercial sale
+	SaleTypeSampleCustoms    SaleType = "SAMPLE_CUSTOMS"    // muestra de aduana
+	SaleTypeGift             SaleType = "GIFT"              // obsequio bodega
+	SaleTypeInternal         SaleType = "INTERNAL"          // consumidor final empleados
+	SaleTypeCommercialSample SaleType = "COMMERCIAL_SAMPLE" // muestras comerciales (prensa/degustación)
+)
+
+// SaleOrder represents the aggregate root for a customer sales order.
 type SaleOrder struct {
-	id         string
-	customerID string
-	status     string
-	items      []valueObject.SaleOrderItem
-	createdAt  string
-	active     bool
+	id                 string
+	customerID         string
+	status             Status
+	items              []valueObject.SaleOrderItem
+	currency           Currency
+	market             Market
+	destinationCountry string // ISO-3166 alpha-2, e.g., "AR", "GB", "BR", "JP"
+	saleType           SaleType
+	createdAt          string
+	active             bool
 }
 
-func NewSaleOrder(customerID string, items []valueObject.SaleOrderItem) (SaleOrder, error) {
+type NewSaleOrderParams struct {
+	CustomerID         string
+	Items              []valueObject.SaleOrderItem
+	Currency           Currency
+	Market             Market
+	DestinationCountry string
+	SaleType           SaleType
+}
+
+func NewSaleOrder(params NewSaleOrderParams) (SaleOrder, error) {
+	if params.CustomerID == "" {
+		return SaleOrder{}, errors.New("customerID cannot be empty")
+	}
+	if len(params.Items) == 0 {
+		return SaleOrder{}, errors.New("sale order must have at least one item")
+	}
+	currency := params.Currency
+	if currency == "" {
+		currency = CurrencyARS
+	}
+	market := params.Market
+	if market == "" {
+		market = MarketDomestic
+	}
+	saleType := params.SaleType
+	if saleType == "" {
+		saleType = SaleTypeRegular
+	}
 	return SaleOrder{
-		id:         uuid.New().String(),
-		customerID: customerID,
-		status:     "NEW",
-		items:      items,
-		createdAt:  time.Now().UTC().Format(time.RFC3339),
-		active:     true,
+		id:                 uuid.New().String(),
+		customerID:         params.CustomerID,
+		status:             StatusNew,
+		items:              params.Items,
+		currency:           currency,
+		market:             market,
+		destinationCountry: params.DestinationCountry,
+		saleType:           saleType,
+		createdAt:          time.Now().UTC().Format(time.RFC3339),
+		active:             true,
 	}, nil
 }
 
-func (s *SaleOrder) GetID() string {
-	return s.id
+// validTransitions maps allowed status progressions
+var validTransitions = map[Status][]Status{
+	StatusNew:       {StatusConfirmed, StatusCancelled},
+	StatusConfirmed: {StatusInvoiced, StatusCancelled},
+	StatusInvoiced:  {StatusDispatched, StatusCancelled},
 }
 
-func (s *SaleOrder) GetCustomerID() string {
-	return s.customerID
+// UpdateStatus advances the order through its lifecycle pipeline.
+func (s *SaleOrder) UpdateStatus(newStatus Status) error {
+	allowed, ok := validTransitions[s.status]
+	if !ok {
+		return errors.New("order is in a terminal state")
+	}
+	for _, a := range allowed {
+		if a == newStatus {
+			s.status = newStatus
+			return nil
+		}
+	}
+	return errors.New("invalid status transition from " + string(s.status) + " to " + string(newStatus))
 }
 
-// GetItems ToDO: handle concurrency problems
+func (s *SaleOrder) GetID() string                    { return s.id }
+func (s *SaleOrder) GetCustomerID() string            { return s.customerID }
+func (s *SaleOrder) GetStatus() Status                { return s.status }
+func (s *SaleOrder) GetCurrency() Currency            { return s.currency }
+func (s *SaleOrder) GetMarket() Market                { return s.market }
+func (s *SaleOrder) GetDestinationCountry() string    { return s.destinationCountry }
+func (s *SaleOrder) GetSaleType() SaleType            { return s.saleType }
+func (s *SaleOrder) GetCreatedAt() string             { return s.createdAt }
+func (s *SaleOrder) IsActive() bool                   { return s.active }
+
+// GetItems returns a defensive copy
 func (s *SaleOrder) GetItems() []valueObject.SaleOrderItem {
 	itemsCopy := make([]valueObject.SaleOrderItem, len(s.items))
 	copy(itemsCopy, s.items)
 	return itemsCopy
-}
-
-func (s *SaleOrder) GetCreatedAt() string {
-	return s.createdAt
 }

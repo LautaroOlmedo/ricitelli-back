@@ -7,6 +7,7 @@ import (
 type ProductInventoryStorage interface {
 	CreateProductInventory(prodInventory product_inventory.ProductInventory) error
 	GetProductInventory(productID string) (*product_inventory.ProductInventory, error)
+	SaveProductInventory(inv product_inventory.ProductInventory) error
 }
 
 type Service struct {

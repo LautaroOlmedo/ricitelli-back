@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package inventory;
+
+option go_package = "ricitelli-back/cmd/http/gen/inventory;inventorypb";
+
+import "google/protobuf/empty.proto";
+
+// ProductTricapa holds tricapa metrics for a wine product (SV + PT layers).
+message ProductTricapa {
+  string product_id         = 1;
+  string product_name       = 2;
+  string sku                = 3;
+  int64  undressed_stock    = 4; // SV - Sin Vestir (physical)
+  int64  dressed_physical   = 5; // PT - Producto Terminado (physical)
+  int64  dressed_committed  = 6; // PT committed for pending sale orders
+  int64  dressed_available  = 7; // PT available = physical - committed
+}
+
+// DrySupplyAlert flags a dry supply item with its current stock levels.
+message DrySupplyAlert {
+  string dry_supply_id = 1;
+  string code          = 2;
+  string name          = 3;
+  int64  physical      = 4;
+  int64  committed     = 5;
+  int64  available     = 6;
+  bool   is_low        = 7; // true when available < threshold
+}
+
+// InventoryReport is a full snapshot of all tricapa stock levels.
+message InventoryReport {
+  repeated ProductTricapa   products           = 1;
+  repeated DrySupplyAlert   dry_supply_alerts  = 2;
+}
+
+// ConvertSVtoPTRequest triggers the SV → PT dressing workflow.
+message ConvertSVtoPTRequest {
+  string product_id  = 1;
+  uint64 quantity    = 2;
+  string lot_number  = 3; // e.g., "L-081124-38-11" (auto-generated if empty)
+}
+
+message GetProductTricapaRequest {
+  string product_id = 1;
+}
+
+service InventoryService {
+  // GetInventoryReport returns a full tricapa snapshot for all products and dry supplies.
+  rpc GetInventoryReport(google.protobuf.Empty)      returns (InventoryReport);
+  // GetLowStockAlerts returns only dry supplies below the safety threshold.
+  rpc GetLowStockAlerts(google.protobuf.Empty)       returns (InventoryReport);
+  // ConvertSVtoPT dresses undressed (SV) wine into finished product (PT) with lot assignment.
+  rpc ConvertSVtoPT(ConvertSVtoPTRequest)            returns (google.protobuf.Empty);
+  // GetProductTricapa returns the tricapa snapshot for a single product.
+  rpc GetProductTricapa(GetProductTricapaRequest)    returns (ProductTricapa);
+}

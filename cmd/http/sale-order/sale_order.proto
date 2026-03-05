@@ -5,28 +5,36 @@ package sale_order;
 option go_package = "ricitelli-back/cmd/http/gen/sale_order;saleorderpb";
 
 import "google/protobuf/empty.proto";
-import "product.proto"; // Para el ID de productos en items
+import "product.proto";
 
-// Un item dentro de la orden de venta
+// SaleOrderItem represents one line in a sale order.
 message SaleOrderItem {
   string product_id = 1;
-  uint64 quantity = 2;
-  float unit_price = 3;
+  uint64 quantity   = 2;
+  float  unit_price = 3;
 }
 
-// Orden de venta
+// SaleOrder represents a customer order with its full commercial context.
 message SaleOrder {
-  string id = 1;
-  string customer_id = 2;
-  string status = 3;
+  string id                  = 1;
+  string customer_id         = 2;
+  string status              = 3; // NEW | CONFIRMED | INVOICED | DISPATCHED | CANCELLED
   repeated SaleOrderItem items = 4;
-  string created_at = 5;
+  string created_at          = 5;
+  // Commercial context (new fields)
+  string currency            = 6; // ARS | USD | CAD | EUR
+  string market              = 7; // DOMESTIC | EXPORT
+  string destination_country = 8; // ISO-3166 alpha-2, e.g. "AR", "GB", "JP"
+  string sale_type           = 9; // SALE | SAMPLE_CUSTOMS | GIFT | INTERNAL | COMMERCIAL_SAMPLE
 }
 
-// Requests
 message CreateSaleOrderRequest {
-  string customer_id = 1;
+  string customer_id         = 1;
   repeated SaleOrderItem items = 2;
+  string currency            = 3;
+  string market              = 4;
+  string destination_country = 5;
+  string sale_type           = 6;
 }
 
 message GetSaleOrderByIDRequest {
@@ -37,9 +45,15 @@ message GetSaleOrdersResponse {
   repeated SaleOrder sale_orders = 1;
 }
 
-// Servicio gRPC
+// UpdateSaleOrderStatusRequest advances the order pipeline.
+message UpdateSaleOrderStatusRequest {
+  string id     = 1;
+  string status = 2; // target status
+}
+
 service SaleOrderService {
-  rpc CreateSaleOrder(CreateSaleOrderRequest) returns (SaleOrder);
-  rpc GetSaleOrderByID(GetSaleOrderByIDRequest) returns (SaleOrder);
-  rpc GetSaleOrders(google.protobuf.Empty) returns (GetSaleOrdersResponse);
+  rpc CreateSaleOrder(CreateSaleOrderRequest)                   returns (SaleOrder);
+  rpc GetSaleOrderByID(GetSaleOrderByIDRequest)                 returns (SaleOrder);
+  rpc GetSaleOrders(google.protobuf.Empty)                      returns (GetSaleOrdersResponse);
+  rpc UpdateSaleOrderStatus(UpdateSaleOrderStatusRequest)       returns (SaleOrder);
 }

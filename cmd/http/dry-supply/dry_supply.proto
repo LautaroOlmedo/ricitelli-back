@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package dry_supply;
+
+option go_package = "ricitelli-back/cmd/http/gen/dry_supply;drysupplypb";
+
+import "google/protobuf/empty.proto";
+
+// DrySupply represents a packaging/raw material (insumo seco).
+// Examples: boxes, labels, contraetiquetas, corks, capsules.
+message DrySupply {
+  string id       = 1;
+  string code     = 2; // SKU, e.g. "IF1156"
+  string name     = 3;
+  string category = 4; // LABEL | CONTRAETIQUETA | BOX | CORK | CAPSULE | BOTTLE | OTHER
+  string unit     = 5; // UNIT | BOX | KG
+}
+
+// StockTricapa represents the three-layer stock model for a dry supply.
+message StockTricapa {
+  string dry_supply_id   = 1;
+  string code            = 2;
+  string name            = 3;
+  int64  physical_stock  = 4; // total IN - CONSUMED
+  int64  committed_stock = 5; // reserved for production orders
+  int64  available_stock = 6; // physical - committed
+}
+
+message CreateDrySupplyRequest {
+  string code     = 1;
+  string name     = 2;
+  string category = 3;
+  string unit     = 4;
+}
+
+message GetDrySupplyByIDRequest {
+  string id = 1;
+}
+
+message GetDrySuppliesResponse {
+  repeated DrySupply dry_supplies = 1;
+}
+
+// AddStockRequest records incoming stock (purchase/receipt).
+message AddStockRequest {
+  string dry_supply_id = 1;
+  uint64 quantity      = 2;
+  string reference     = 3; // purchase order ID or description
+}
+
+message GetStockTricapaRequest {
+  string dry_supply_id = 1;
+}
+
+// CommitStockRequest reserves stock for a production order.
+message CommitStockRequest {
+  string dry_supply_id       = 1;
+  uint64 quantity            = 2;
+  string production_order_id = 3;
+}
+
+// ReleaseStockRequest cancels a reservation.
+message ReleaseStockRequest {
+  string dry_supply_id = 1;
+  uint64 quantity      = 2;
+  string reference     = 3;
+}
+
+// ConsumeStockRequest records actual usage when production completes.
+message ConsumeStockRequest {
+  string dry_supply_id = 1;
+  uint64 quantity      = 2;
+  string reference     = 3;
+}
+
+service DrySupplyService {
+  rpc CreateDrySupply(CreateDrySupplyRequest)          returns (DrySupply);
+  rpc GetDrySupplyByID(GetDrySupplyByIDRequest)        returns (DrySupply);
+  rpc GetDrySupplies(google.protobuf.Empty)            returns (GetDrySuppliesResponse);
+  rpc AddStock(AddStockRequest)                        returns (google.protobuf.Empty);
+  rpc GetStockTricapa(GetStockTricapaRequest)          returns (StockTricapa);
+  rpc CommitStock(CommitStockRequest)                  returns (google.protobuf.Empty);
+  rpc ReleaseStock(ReleaseStockRequest)                returns (google.protobuf.Empty);
+  rpc ConsumeStock(ConsumeStockRequest)                returns (google.protobuf.Empty);
+}

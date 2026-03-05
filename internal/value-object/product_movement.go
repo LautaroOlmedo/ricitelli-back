@@ -39,6 +39,7 @@ type ProductMovement struct {
 	Quantity     uint64
 	Reference    string // saleOrderID, productionOrderID, dispatchID
 	Stage        Stage  // VESTIDO, SIN VESTIR
+	LotNumber    string // e.g., "L-081124-38-11" — assigned when converting SV→PT
 	CreatedAt    string
 }
 
@@ -56,4 +57,13 @@ func NewProductMovement(reference string, stage Stage, movementType ProductMovem
 		Quantity:     quantity,
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 	}, nil
+}
+
+func NewProductMovementWithLot(reference string, stage Stage, movementType ProductMovementType, quantity uint64, lotNumber string) (ProductMovement, error) {
+	m, err := NewProductMovement(reference, stage, movementType, quantity)
+	if err != nil {
+		return ProductMovement{}, err
+	}
+	m.LotNumber = lotNumber
+	return m, nil
 }
