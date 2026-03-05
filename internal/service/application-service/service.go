@@ -3,6 +3,7 @@ package application_service
 import (
 	"context"
 
+	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
 	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
 	"ricitelli-back/internal/domain/product"
@@ -10,8 +11,18 @@ import (
 	production_order "ricitelli-back/internal/domain/production-order"
 	sale_order "ricitelli-back/internal/domain/sale-order"
 	"ricitelli-back/internal/entities"
+	customer_svc "ricitelli-back/internal/service/customer"
 	valueObject "ricitelli-back/internal/value-object"
 )
+
+type CustomerService interface {
+	CreateCustomer(ctx context.Context, params customer_domain.NewCustomerParams) (customer_domain.Customer, error)
+	GetCustomerByID(ctx context.Context, id string) (*customer_domain.Customer, error)
+	GetCustomers(ctx context.Context) ([]customer_domain.Customer, error)
+	DeactivateCustomer(ctx context.Context, id string) (*customer_domain.Customer, error)
+	PlaceOrder(ctx context.Context, params customer_svc.PlaceOrderParams) (sale_order.SaleOrder, error)
+	GetOrdersByCustomer(ctx context.Context, customerID string) ([]sale_order.SaleOrder, error)
+}
 
 //go:generate mockgen -source=service.go -destination=././mocks/sale_order_service_mock.go -package=mocks
 type SaleOrderService interface {
@@ -53,6 +64,7 @@ type DrySupplyService interface {
 }
 
 type Service struct {
+	CustomerService         CustomerService
 	SaleOrderService        SaleOrderService
 	ProductionOrderService  ProductionOrderService
 	ProductService          ProductService
@@ -61,6 +73,7 @@ type Service struct {
 }
 
 func NewApplicationService(
+	customerService CustomerService,
 	saleOrderService SaleOrderService,
 	productionOrderService ProductionOrderService,
 	productService ProductService,
@@ -68,6 +81,7 @@ func NewApplicationService(
 	drySupplyService DrySupplyService,
 ) Service {
 	return Service{
+		CustomerService:         customerService,
 		SaleOrderService:        saleOrderService,
 		ProductionOrderService:  productionOrderService,
 		ProductService:          productService,

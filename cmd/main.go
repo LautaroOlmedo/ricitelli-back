@@ -14,6 +14,7 @@ import (
 	"ricitelli-back/config"
 	repository "ricitelli-back/internal/infraestructure/in-memory"
 	application_service "ricitelli-back/internal/service/application-service"
+	customer_svc "ricitelli-back/internal/service/customer"
 	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
 	inventory_svc "ricitelli-back/internal/service/inventory"
 	"ricitelli-back/internal/service/product"
@@ -36,9 +37,11 @@ func main() {
 	productionOrderService := production_order.NewProductionOrderService(memoryRepo)
 	saleOrderService := sale_order.NewSaleOrderService(memoryRepo)
 	drySupplyService := dry_supply_svc.NewDrySupplyService(memoryRepo)
+	customerService := customer_svc.NewCustomerService(memoryRepo, memoryRepo)
 
 	// Application (orchestration) service
 	applicationService := application_service.NewApplicationService(
+		customerService,
 		saleOrderService,
 		productionOrderService,
 		productService,

@@ -8,3 +8,6 @@ protoc   -I=.   -I=../product   -I=../production-order   -I=../application-servi
 
 
 protoc   -I=.   -I=../sale-order   -I=../production-order   -I=../application-service   --go_out=paths=source_relative:../gen/product   --go-grpc_out=paths=source_relative:../gen/product   product.proto
+
+
+protoc   -I=.   -I=../sale-order   --go_out=paths=source_relative:../gen/customer   --go-grpc_out=paths=source_relative:../gen/customer   customer.proto

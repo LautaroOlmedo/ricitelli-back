@@ -4,6 +4,7 @@ import (
 	"context"
 
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
+
 	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
@@ -29,6 +30,7 @@ type Server struct {
 	applicationpb.UnimplementedApplicationServiceServer
 	drysupplypb.UnimplementedDrySupplyServiceServer
 	inventorypb.UnimplementedInventoryServiceServer
+	//customerpb.UnimplementedCustomerServiceServer
 
 	AppService       application_service.Service
 	DrySupplyService *dry_supply_svc.Service

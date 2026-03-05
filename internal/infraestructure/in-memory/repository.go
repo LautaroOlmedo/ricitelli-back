@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
 	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
 	"ricitelli-back/internal/domain/product"
@@ -16,6 +17,7 @@ import (
 )
 
 type InMemoryRepository struct {
+	customersMutex          sync.RWMutex
 	saleOrdersMutex         sync.RWMutex
 	productionOrdersMutex   sync.RWMutex
 	productsMutex           sync.RWMutex
@@ -23,6 +25,7 @@ type InMemoryRepository struct {
 	drySupplyMutex          sync.RWMutex
 	drySupplyInventoryMutex sync.RWMutex
 
+	Customers            []customer_domain.Customer
 	SaleOrders           []sale_order.SaleOrder
 	ProductionOrders     []production_order.ProductionOrder
 	Products             []product.Product
@@ -33,6 +36,7 @@ type InMemoryRepository struct {
 
 func NewInMemoryRepository() *InMemoryRepository {
 	repo := &InMemoryRepository{
+		Customers:            make([]customer_domain.Customer, 0),
 		SaleOrders:           make([]sale_order.SaleOrder, 0),
 		ProductionOrders:     make([]production_order.ProductionOrder, 0),
 		Products:             make([]product.Product, 0),
@@ -43,7 +47,54 @@ func NewInMemoryRepository() *InMemoryRepository {
 	repo.seedDrySupplies()
 	repo.seedProducts()
 	repo.seedProductInventory()
+	repo.seedCustomers()
 	return repo
+}
+
+// ===== CUSTOMER =====
+
+func (r *InMemoryRepository) CreateCustomer(ctx context.Context, params customer_domain.NewCustomerParams) (customer_domain.Customer, error) {
+	r.customersMutex.Lock()
+	defer r.customersMutex.Unlock()
+	c, err := customer_domain.NewCustomer(params)
+	if err != nil {
+		return customer_domain.Customer{}, err
+	}
+	r.Customers = append(r.Customers, c)
+	return c, nil
+}
+
+func (r *InMemoryRepository) GetCustomerByID(ctx context.Context, id string) (*customer_domain.Customer, error) {
+	r.customersMutex.RLock()
+	defer r.customersMutex.RUnlock()
+	for i := range r.Customers {
+		if r.Customers[i].GetID() == id {
+			return &r.Customers[i], nil
+		}
+	}
+	return nil, errors.New("customer not found")
+}
+
+func (r *InMemoryRepository) GetCustomers(ctx context.Context) ([]customer_domain.Customer, error) {
+	r.customersMutex.RLock()
+	defer r.customersMutex.RUnlock()
+	cp := make([]customer_domain.Customer, len(r.Customers))
+	copy(cp, r.Customers)
+	return cp, nil
+}
+
+func (r *InMemoryRepository) DeactivateCustomer(ctx context.Context, id string) (*customer_domain.Customer, error) {
+	r.customersMutex.Lock()
+	defer r.customersMutex.Unlock()
+	for i := range r.Customers {
+		if r.Customers[i].GetID() == id {
+			if err := r.Customers[i].Deactivate(); err != nil {
+				return nil, err
+			}
+			return &r.Customers[i], nil
+		}
+	}
+	return nil, errors.New("customer not found")
 }
 
 // ===== SALE ORDER =====
@@ -369,6 +420,31 @@ func (r *InMemoryRepository) seedProducts() {
 			panic(err)
 		}
 		r.Products = append(r.Products, prod)
+	}
+}
+
+func (r *InMemoryRepository) seedCustomers() {
+	seeds := []struct {
+		id           string
+		socialReason string
+		marketType   customer_domain.MarketType
+		group        customer_domain.Group
+	}{
+		{"cust-001", "Distribuidora Sur S.A.", customer_domain.MarketTypeInternal, customer_domain.GroupDistributor},
+		{"cust-002", "Vinoteca El Barril", customer_domain.MarketTypeInternal, customer_domain.GroupWineShop},
+		{"cust-003", "Japan Wine Imports Ltd.", customer_domain.MarketTypeExternal, customer_domain.GroupExportAgent},
+		{"cust-004", "Hotel Patagonia & Spa", customer_domain.MarketTypeInternal, customer_domain.GroupHotel},
+	}
+	for _, s := range seeds {
+		c, err := customer_domain.NewCustomerWithID(s.id, customer_domain.NewCustomerParams{
+			SocialReason: s.socialReason,
+			MarketType:   s.marketType,
+			Group:        s.group,
+		})
+		if err != nil {
+			panic(err)
+		}
+		r.Customers = append(r.Customers, c)
 	}
 }
 
