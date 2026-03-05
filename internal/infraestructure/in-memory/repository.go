@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
+	"time"
 
 	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
@@ -465,4 +467,54 @@ func (r *InMemoryRepository) seedProductInventory() {
 		}
 		r.ProductInventory = append(r.ProductInventory, inv)
 	}
+}
+
+func (r *InMemoryRepository) GetSaleOrdersByDateRange(ctx context.Context, from, to string) ([]sale_order.SaleOrder, error) {
+	r.saleOrdersMutex.RLock()
+	defer r.saleOrdersMutex.RUnlock()
+
+	const dateFmt = "2006-01-02"
+	fromTime, err := time.Parse(dateFmt, from)
+	if err != nil {
+		return nil, errors.New("invalid from_date format, expected YYYY-MM-DD")
+	}
+	toTime, err := time.Parse(dateFmt, to)
+	if err != nil {
+		return nil, errors.New("invalid to_date format, expected YYYY-MM-DD")
+	}
+	toTime = toTime.Add(24*time.Hour - time.Nanosecond)
+
+	var result []sale_order.SaleOrder
+	for _, o := range r.SaleOrders {
+		t, parseErr := time.Parse(time.RFC3339, o.GetCreatedAt())
+		if parseErr != nil {
+			continue
+		}
+		if !t.Before(fromTime) && !t.After(toTime) {
+			result = append(result, o)
+		}
+	}
+	return result, nil
+}
+
+func (r *InMemoryRepository) SearchCustomersBySocialReason(ctx context.Context, query string) ([]customer_domain.Customer, error) {
+	r.customersMutex.RLock()
+	defer r.customersMutex.RUnlock()
+
+	words := strings.Fields(strings.ToLower(query))
+	var result []customer_domain.Customer
+	for _, c := range r.Customers {
+		name := strings.ToLower(c.GetSocialReason())
+		match := true
+		for _, w := range words {
+			if !strings.Contains(name, w) {
+				match = false
+				break
+			}
+		}
+		if match {
+			result = append(result, c)
+		}
+	}
+	return result, nil
 }
