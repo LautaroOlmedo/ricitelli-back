@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package customer;
+
+option go_package = "ricitelli-back/cmd/http/gen/customer;customerpb";
+
+import "google/protobuf/empty.proto";
+import "sale_order.proto";
+
+// Customer represents a buyer identified by its legal name, market type and commercial group.
+message Customer {
+  string id            = 1;
+  string social_reason = 2; // razón social
+  string market_type   = 3; // INTERNAL | EXTERNAL
+  string group         = 4; // DISTRIBUTOR | WINE_SHOP | RESTAURANT | HOTEL | RETAIL | PRIVATE | EXPORT_AGENT
+  bool   active        = 5;
+  string created_at    = 6;
+}
+
+message CreateCustomerRequest {
+  string social_reason = 1;
+  string market_type   = 2; // INTERNAL | EXTERNAL
+  string group         = 3; // DISTRIBUTOR | WINE_SHOP | RESTAURANT | HOTEL | RETAIL | PRIVATE | EXPORT_AGENT
+}
+
+message GetCustomerByIDRequest {
+  string id = 1;
+}
+
+message GetCustomersResponse {
+  repeated Customer customers = 1;
+}
+
+message DeactivateCustomerRequest {
+  string id = 1;
+}
+
+// PlaceOrderRequest creates a sale order on behalf of the customer.
+// The market (DOMESTIC / EXPORT) is inferred automatically from the customer's market_type.
+message PlaceOrderRequest {
+  string customer_id         = 1;
+  repeated sale_order.SaleOrderItem items = 2;
+  string currency            = 3; // ARS | USD | CAD | EUR  (defaults to ARS)
+  string destination_country = 4; // ISO-3166 alpha-2, e.g. "AR", "GB", "JP"
+  string sale_type           = 5; // SALE | SAMPLE_CUSTOMS | GIFT | INTERNAL | COMMERCIAL_SAMPLE
+}
+
+message GetOrdersByCustomerRequest {
+  string customer_id = 1;
+}
+
+message GetOrdersByCustomerResponse {
+  repeated sale_order.SaleOrder orders = 1;
+}
+
+service CustomerService {
+  rpc CreateCustomer(CreateCustomerRequest)                     returns (Customer);
+  rpc GetCustomerByID(GetCustomerByIDRequest)                   returns (Customer);
+  rpc GetCustomers(google.protobuf.Empty)                       returns (GetCustomersResponse);
+  rpc DeactivateCustomer(DeactivateCustomerRequest)             returns (Customer);
+  rpc PlaceOrder(PlaceOrderRequest)                             returns (sale_order.SaleOrder);
+  rpc GetOrdersByCustomer(GetOrdersByCustomerRequest)           returns (GetOrdersByCustomerResponse);
+}
