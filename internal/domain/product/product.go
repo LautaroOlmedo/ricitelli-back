@@ -78,6 +78,15 @@ func (p *Product) GetActive() bool {
 	return p.active
 }
 
+// ReconstitueProduct reconstitutes a Product aggregate from stored data.
+// Use only for loading from persistence — bypasses the BOD invariant.
+func ReconstitueProduct(id, name string, bods []valueObject.BillOfDrySupply, active bool) Product {
+	if bods == nil {
+		bods = []valueObject.BillOfDrySupply{}
+	}
+	return Product{id: id, name: name, bods: bods, active: active}
+}
+
 // CalculateRequirements ToDO: Handle correctly Box case
 func (p *Product) CalculateRequirements(qty uint64) []valueObject.MaterialRequirement {
 	var result []valueObject.MaterialRequirement

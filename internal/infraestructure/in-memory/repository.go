@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -46,10 +47,14 @@ func NewInMemoryRepository() *InMemoryRepository {
 		DrySupplies:          make([]dry_supply.DrySupply, 0),
 		DrySupplyInventories: make([]dry_supply_inventory.DrySupplyInventory, 0),
 	}
-	repo.seedDrySupplies()
-	repo.seedProducts()
-	repo.seedProductInventory()
-	repo.seedCustomers()
+	dataPath := resolveDataPath()
+	if err := repo.SeedFromXLSX(dataPath); err != nil {
+		log.Printf("[InMemoryRepository] xlsx seeding failed (%v); falling back to hardcoded seeds\n", err)
+		repo.seedDrySupplies()
+		repo.seedProducts()
+		repo.seedProductInventory()
+		repo.seedCustomers()
+	}
 	return repo
 }
 
