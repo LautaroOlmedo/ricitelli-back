@@ -1,17 +1,30 @@
 package production_order
 
 import (
+	"errors"
 	"ricitelli-back/internal/entities"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+type Status string
+
+const (
+	StatusInProgress Status = "IN_PROGRESS"
+	StatusCompleted  Status = "COMPLETED"
+	StatusCancelled  Status = "CANCELLED"
+)
+
+var validTransitions = map[Status][]Status{
+	StatusInProgress: {StatusCompleted, StatusCancelled},
+}
+
 type ProductionOrder struct {
 	ID              string `json:"id"`
 	salesOrderID    string
 	operationNumber string
-	status          string
+	status          Status
 	items           []entities.ProductionItem
 	createdAt       string
 	active          bool
@@ -22,12 +35,11 @@ func NewProductionOrder(salesOrderID string, items []entities.ProductionItem) Pr
 		ID:              uuid.New().String(),
 		salesOrderID:    salesOrderID,
 		operationNumber: "ProductionOrder",
-		status:          "IN PROGRESS",
+		status:          StatusInProgress,
 		items:           items,
 		createdAt:       time.Now().UTC().Format(time.RFC3339),
 		active:          true,
 	}
-
 }
 
 func (o *ProductionOrder) GetID() string {
@@ -52,20 +64,21 @@ func (o *ProductionOrder) GetItems() []entities.ProductionItem {
 	return itemsCopy
 }
 
-func (o *ProductionOrder) GetStatus() string {
+func (o *ProductionOrder) GetStatus() Status {
 	return o.status
 }
 
-//func (o *ProductionOrder) GetDrySupplies() []*entities.DrySupply {
-//	var drySupplies []*entities.DrySupply
-//	for key, _ := range o.drySupplies {
-//		drySupplies = append(drySupplies, key)
-//	}
-//	return drySupplies
-//}
-
-/*type ProductSnapshot struct {
-	productID   string
-	productName string
-	bomVersion  uint32
-}*/
+// UpdateStatus advances the production order through its lifecycle.
+func (o *ProductionOrder) UpdateStatus(newStatus Status) error {
+	allowed, ok := validTransitions[o.status]
+	if !ok {
+		return errors.New("production order is in a terminal state: " + string(o.status))
+	}
+	for _, a := range allowed {
+		if a == newStatus {
+			o.status = newStatus
+			return nil
+		}
+	}
+	return errors.New("invalid status transition from " + string(o.status) + " to " + string(newStatus))
+}

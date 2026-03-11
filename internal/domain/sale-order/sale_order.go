@@ -13,11 +13,12 @@ import (
 type Status string
 
 const (
-	StatusNew        Status = "NEW"
-	StatusConfirmed  Status = "CONFIRMED"
-	StatusInvoiced   Status = "INVOICED"
-	StatusDispatched Status = "DISPATCHED"
-	StatusCancelled  Status = "CANCELLED"
+	StatusNew             Status = "NEW"
+	StatusReadyToDispatch Status = "READY_TO_DISPATCH"
+	StatusConfirmed       Status = "CONFIRMED"
+	StatusInvoiced        Status = "INVOICED"
+	StatusDispatched      Status = "DISPATCHED"
+	StatusCancelled       Status = "CANCELLED"
 )
 
 // Currency supported currencies
@@ -107,9 +108,10 @@ func NewSaleOrder(params NewSaleOrderParams) (SaleOrder, error) {
 
 // validTransitions maps allowed status progressions
 var validTransitions = map[Status][]Status{
-	StatusNew:       {StatusConfirmed, StatusCancelled},
-	StatusConfirmed: {StatusInvoiced, StatusCancelled},
-	StatusInvoiced:  {StatusDispatched, StatusCancelled},
+	StatusNew:             {StatusReadyToDispatch, StatusCancelled},
+	StatusReadyToDispatch: {StatusInvoiced, StatusCancelled},
+	StatusConfirmed:       {StatusInvoiced, StatusCancelled},
+	StatusInvoiced:        {StatusDispatched, StatusCancelled},
 }
 
 // UpdateStatus advances the order through its lifecycle pipeline.
@@ -127,15 +129,15 @@ func (s *SaleOrder) UpdateStatus(newStatus Status) error {
 	return errors.New("invalid status transition from " + string(s.status) + " to " + string(newStatus))
 }
 
-func (s *SaleOrder) GetID() string                    { return s.id }
-func (s *SaleOrder) GetCustomerID() string            { return s.customerID }
-func (s *SaleOrder) GetStatus() Status                { return s.status }
-func (s *SaleOrder) GetCurrency() Currency            { return s.currency }
-func (s *SaleOrder) GetMarket() Market                { return s.market }
-func (s *SaleOrder) GetDestinationCountry() string    { return s.destinationCountry }
-func (s *SaleOrder) GetSaleType() SaleType            { return s.saleType }
-func (s *SaleOrder) GetCreatedAt() string             { return s.createdAt }
-func (s *SaleOrder) IsActive() bool                   { return s.active }
+func (s *SaleOrder) GetID() string                 { return s.id }
+func (s *SaleOrder) GetCustomerID() string         { return s.customerID }
+func (s *SaleOrder) GetStatus() Status             { return s.status }
+func (s *SaleOrder) GetCurrency() Currency         { return s.currency }
+func (s *SaleOrder) GetMarket() Market             { return s.market }
+func (s *SaleOrder) GetDestinationCountry() string { return s.destinationCountry }
+func (s *SaleOrder) GetSaleType() SaleType         { return s.saleType }
+func (s *SaleOrder) GetCreatedAt() string          { return s.createdAt }
+func (s *SaleOrder) IsActive() bool                { return s.active }
 
 // GetItems returns a defensive copy
 func (s *SaleOrder) GetItems() []valueObject.SaleOrderItem {

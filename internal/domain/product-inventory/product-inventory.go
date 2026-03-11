@@ -37,9 +37,9 @@ func NewProductInventory(productID, sku string) (ProductInventory, error) {
 	}, nil
 }
 
-func (p *ProductInventory) GetID() string      { return p.id }
+func (p *ProductInventory) GetID() string        { return p.id }
 func (p *ProductInventory) GetProductID() string { return p.productID }
-func (p *ProductInventory) GetSku() string     { return p.sku }
+func (p *ProductInventory) GetSku() string       { return p.sku }
 
 func (p *ProductInventory) GetMovements() []valueObject.ProductMovement {
 	cp := make([]valueObject.ProductMovement, len(p.movements))
@@ -159,6 +159,16 @@ func (p *ProductInventory) ConvertSVtoPT(referenceID string, quantity uint64, lo
 // Reserve commits dressed stock for a sale order.
 func (p *ProductInventory) Reserve(referenceID string, quantity uint64) error {
 	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservedForSale, quantity)
+	if err != nil {
+		return err
+	}
+	p.movements = append(p.movements, m)
+	return nil
+}
+
+// ReleaseReservation cancels a previous dressed stock reservation (e.g., sale order cancelled).
+func (p *ProductInventory) ReleaseReservation(referenceID string, quantity uint64) error {
+	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservationReleased, quantity)
 	if err != nil {
 		return err
 	}

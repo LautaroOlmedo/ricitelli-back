@@ -152,12 +152,26 @@ func (r *InMemoryRepository) UpdateSaleOrderStatus(ctx context.Context, id strin
 
 // ===== PRODUCTION ORDER =====
 
-func (r *InMemoryRepository) CreateProductionOrder(ctx context.Context, saleOrderID string, items []entities.ProductionItem) error {
+func (r *InMemoryRepository) CreateProductionOrder(ctx context.Context, saleOrderID string, items []entities.ProductionItem) (production_order.ProductionOrder, error) {
 	r.productionOrdersMutex.Lock()
 	defer r.productionOrdersMutex.Unlock()
 	newProdOrder := production_order.NewProductionOrder(saleOrderID, items)
 	r.ProductionOrders = append(r.ProductionOrders, newProdOrder)
-	return nil
+	return newProdOrder, nil
+}
+
+func (r *InMemoryRepository) UpdateProductionOrderStatus(ctx context.Context, id string, newStatus production_order.Status) (*production_order.ProductionOrder, error) {
+	r.productionOrdersMutex.Lock()
+	defer r.productionOrdersMutex.Unlock()
+	for i := range r.ProductionOrders {
+		if r.ProductionOrders[i].GetID() == id {
+			if err := r.ProductionOrders[i].UpdateStatus(newStatus); err != nil {
+				return nil, err
+			}
+			return &r.ProductionOrders[i], nil
+		}
+	}
+	return nil, errors.New("production order not found")
 }
 
 func (r *InMemoryRepository) GetProductionOrderByID(ctx context.Context, id string) (*production_order.ProductionOrder, error) {

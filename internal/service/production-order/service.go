@@ -7,9 +7,10 @@ import (
 )
 
 type ProductionOrderStorage interface {
-	CreateProductionOrder(ctx context.Context, salesOrderID string, items []entities.ProductionItem) error
+	CreateProductionOrder(ctx context.Context, salesOrderID string, items []entities.ProductionItem) (production_order.ProductionOrder, error)
 	GetProductionOrderByID(ctx context.Context, id string) (*production_order.ProductionOrder, error)
 	GetProductionOrders(ctx context.Context) ([]production_order.ProductionOrder, error)
+	UpdateProductionOrderStatus(ctx context.Context, id string, newStatus production_order.Status) (*production_order.ProductionOrder, error)
 }
 
 type Service struct {

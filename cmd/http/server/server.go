@@ -210,7 +210,7 @@ func buildProtoProductionOrder(order *production_order_domain.ProductionOrder) *
 	return &productionorderpb.ProductionOrder{
 		Id:          order.GetID(),
 		SaleOrderId: order.GetSalesOrderID(),
-		Status:      order.GetStatus(),
+		Status:      string(order.GetStatus()),
 		CreatedAt:   order.GetCreatedAt(),
 		Items:       protoItems,
 	}
