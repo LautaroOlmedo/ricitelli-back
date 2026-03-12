@@ -108,7 +108,7 @@ func NewSaleOrder(params NewSaleOrderParams) (SaleOrder, error) {
 
 // validTransitions maps allowed status progressions
 var validTransitions = map[Status][]Status{
-	StatusNew:             {StatusReadyToDispatch, StatusCancelled},
+	StatusNew:             {StatusConfirmed, StatusReadyToDispatch, StatusCancelled},
 	StatusReadyToDispatch: {StatusInvoiced, StatusCancelled},
 	StatusConfirmed:       {StatusInvoiced, StatusCancelled},
 	StatusInvoiced:        {StatusDispatched, StatusCancelled},
