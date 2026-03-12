@@ -37,6 +37,7 @@ type ProductionOrderService interface {
 	CreateProductionOrder(ctx context.Context, salesOrderID string, items []entities.ProductionItem) (production_order.ProductionOrder, error)
 	GetProductionOrderByID(ctx context.Context, id string) (*production_order.ProductionOrder, error)
 	GetProductionOrders(ctx context.Context) ([]production_order.ProductionOrder, error)
+	GetProductionOrdersBySaleOrder(ctx context.Context, saleOrderID string) ([]production_order.ProductionOrder, error)
 	UpdateProductionOrderStatus(ctx context.Context, id string, newStatus production_order.Status) (*production_order.ProductionOrder, error)
 }
 
@@ -45,6 +46,7 @@ type ProductService interface {
 	CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) error
 	GetProductByID(ctx context.Context, id string) (*product.Product, error)
 	GetProducts(ctx context.Context) ([]product.Product, error)
+	UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error
 }
 
 type ProductInventoryService interface {

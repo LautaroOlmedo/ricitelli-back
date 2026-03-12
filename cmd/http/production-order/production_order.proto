@@ -38,13 +38,18 @@ message GetProductionOrderByIDRequest {
   string id = 1;
 }
 
+message GetProductionOrdersBySaleOrderRequest {
+  string sale_order_id = 1;
+}
+
 message GetProductionOrdersResponse {
   repeated ProductionOrder production_orders = 1;
 }
 
 // Servicio gRPC
 service ProductionOrderService {
-  rpc CreateProductionOrder(CreateProductionOrderRequest) returns (google.protobuf.Empty);
-  rpc GetProductionOrderByID(GetProductionOrderByIDRequest) returns (ProductionOrder);
-  rpc GetProductionOrders(google.protobuf.Empty) returns (GetProductionOrdersResponse);
+  rpc CreateProductionOrder(CreateProductionOrderRequest)                        returns (google.protobuf.Empty);
+  rpc GetProductionOrderByID(GetProductionOrderByIDRequest)                      returns (ProductionOrder);
+  rpc GetProductionOrders(google.protobuf.Empty)                                 returns (GetProductionOrdersResponse);
+  rpc GetProductionOrdersBySaleOrder(GetProductionOrdersBySaleOrderRequest)      returns (GetProductionOrdersResponse);
 }

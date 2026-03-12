@@ -25,6 +25,7 @@ const (
 	CustomerService_GetCustomerByID_FullMethodName     = "/customer.CustomerService/GetCustomerByID"
 	CustomerService_GetCustomers_FullMethodName        = "/customer.CustomerService/GetCustomers"
 	CustomerService_DeactivateCustomer_FullMethodName  = "/customer.CustomerService/DeactivateCustomer"
+	CustomerService_UpdateCustomer_FullMethodName      = "/customer.CustomerService/UpdateCustomer"
 	CustomerService_PlaceOrder_FullMethodName          = "/customer.CustomerService/PlaceOrder"
 	CustomerService_GetOrdersByCustomer_FullMethodName = "/customer.CustomerService/GetOrdersByCustomer"
 )
@@ -37,6 +38,7 @@ type CustomerServiceClient interface {
 	GetCustomerByID(ctx context.Context, in *GetCustomerByIDRequest, opts ...grpc.CallOption) (*Customer, error)
 	GetCustomers(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetCustomersResponse, error)
 	DeactivateCustomer(ctx context.Context, in *DeactivateCustomerRequest, opts ...grpc.CallOption) (*Customer, error)
+	UpdateCustomer(ctx context.Context, in *UpdateCustomerRequest, opts ...grpc.CallOption) (*Customer, error)
 	PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*sale_order.SaleOrder, error)
 	GetOrdersByCustomer(ctx context.Context, in *GetOrdersByCustomerRequest, opts ...grpc.CallOption) (*GetOrdersByCustomerResponse, error)
 }
@@ -89,6 +91,16 @@ func (c *customerServiceClient) DeactivateCustomer(ctx context.Context, in *Deac
 	return out, nil
 }
 
+func (c *customerServiceClient) UpdateCustomer(ctx context.Context, in *UpdateCustomerRequest, opts ...grpc.CallOption) (*Customer, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Customer)
+	err := c.cc.Invoke(ctx, CustomerService_UpdateCustomer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *customerServiceClient) PlaceOrder(ctx context.Context, in *PlaceOrderRequest, opts ...grpc.CallOption) (*sale_order.SaleOrder, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(sale_order.SaleOrder)
@@ -117,6 +129,7 @@ type CustomerServiceServer interface {
 	GetCustomerByID(context.Context, *GetCustomerByIDRequest) (*Customer, error)
 	GetCustomers(context.Context, *empty.Empty) (*GetCustomersResponse, error)
 	DeactivateCustomer(context.Context, *DeactivateCustomerRequest) (*Customer, error)
+	UpdateCustomer(context.Context, *UpdateCustomerRequest) (*Customer, error)
 	PlaceOrder(context.Context, *PlaceOrderRequest) (*sale_order.SaleOrder, error)
 	GetOrdersByCustomer(context.Context, *GetOrdersByCustomerRequest) (*GetOrdersByCustomerResponse, error)
 	mustEmbedUnimplementedCustomerServiceServer()
@@ -140,6 +153,9 @@ func (UnimplementedCustomerServiceServer) GetCustomers(context.Context, *empty.E
 }
 func (UnimplementedCustomerServiceServer) DeactivateCustomer(context.Context, *DeactivateCustomerRequest) (*Customer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeactivateCustomer not implemented")
+}
+func (UnimplementedCustomerServiceServer) UpdateCustomer(context.Context, *UpdateCustomerRequest) (*Customer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateCustomer not implemented")
 }
 func (UnimplementedCustomerServiceServer) PlaceOrder(context.Context, *PlaceOrderRequest) (*sale_order.SaleOrder, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PlaceOrder not implemented")
@@ -240,6 +256,24 @@ func _CustomerService_DeactivateCustomer_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CustomerService_UpdateCustomer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCustomerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CustomerServiceServer).UpdateCustomer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CustomerService_UpdateCustomer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CustomerServiceServer).UpdateCustomer(ctx, req.(*UpdateCustomerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CustomerService_PlaceOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PlaceOrderRequest)
 	if err := dec(in); err != nil {
@@ -298,6 +332,10 @@ var CustomerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeactivateCustomer",
 			Handler:    _CustomerService_DeactivateCustomer_Handler,
+		},
+		{
+			MethodName: "UpdateCustomer",
+			Handler:    _CustomerService_UpdateCustomer_Handler,
 		},
 		{
 			MethodName: "PlaceOrder",

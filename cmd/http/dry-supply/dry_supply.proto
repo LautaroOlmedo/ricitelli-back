@@ -9,11 +9,12 @@ import "google/protobuf/empty.proto";
 // DrySupply represents a packaging/raw material (insumo seco).
 // Examples: boxes, labels, contraetiquetas, corks, capsules.
 message DrySupply {
-  string id       = 1;
-  string code     = 2; // SKU, e.g. "IF1156"
-  string name     = 3;
-  string category = 4; // LABEL | CONTRAETIQUETA | BOX | CORK | CAPSULE | BOTTLE | OTHER
-  string unit     = 5; // UNIT | BOX | KG
+  string id            = 1;
+  string code          = 2; // SKU, e.g. "IF1156"
+  string name          = 3;
+  string category      = 4; // LABEL | CONTRAETIQUETA | BOX | CORK | CAPSULE | BOTTLE | OTHER
+  string unit          = 5; // UNIT | BOX | KG
+  int32  reorder_point = 6; // minimum stock threshold for alerts (0 = no alert)
 }
 
 // StockTricapa represents the three-layer stock model for a dry supply.
@@ -27,10 +28,17 @@ message StockTricapa {
 }
 
 message CreateDrySupplyRequest {
-  string code     = 1;
-  string name     = 2;
-  string category = 3;
-  string unit     = 4;
+  string code          = 1;
+  string name          = 2;
+  string category      = 3;
+  string unit          = 4;
+  int32  reorder_point = 5;
+}
+
+message UpdateDrySupplyRequest {
+  string id            = 1;
+  string name          = 2;
+  int32  reorder_point = 3;
 }
 
 message GetDrySupplyByIDRequest {
@@ -77,6 +85,7 @@ service DrySupplyService {
   rpc CreateDrySupply(CreateDrySupplyRequest)          returns (DrySupply);
   rpc GetDrySupplyByID(GetDrySupplyByIDRequest)        returns (DrySupply);
   rpc GetDrySupplies(google.protobuf.Empty)            returns (GetDrySuppliesResponse);
+  rpc UpdateDrySupply(UpdateDrySupplyRequest)          returns (google.protobuf.Empty);
   rpc AddStock(AddStockRequest)                        returns (google.protobuf.Empty);
   rpc GetStockTricapa(GetStockTricapaRequest)          returns (StockTricapa);
   rpc CommitStock(CommitStockRequest)                  returns (google.protobuf.Empty);

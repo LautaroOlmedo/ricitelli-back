@@ -563,3 +563,59 @@ func toProtoCustomer(c interface {
 		CreatedAt:    c.GetCreatedAt(),
 	}
 }
+
+// ===== New handlers added for BE-03, BE-06 =====
+
+func (s *Server) UpdateCustomer(ctx context.Context, req *customerpb.UpdateCustomerRequest) (*customerpb.Customer, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	c, err := s.CustomerService.UpdateCustomer(ctx, req.Id, customer_domain.UpdateCustomerParams{
+		SocialReason: req.SocialReason,
+		MarketType:   customer_domain.MarketType(req.MarketType),
+		Group:        customer_domain.Group(req.Group),
+	})
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return toProtoCustomer(c), nil
+}
+
+func (s *Server) UpdateProduct(ctx context.Context, req *productpb.UpdateProductRequest) (*emptypb.Empty, error) {
+	if req.Id == "" || req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "id and name are required")
+	}
+	bods := make([]valueObject.BillOfDrySupply, 0, len(req.Bods))
+	for _, b := range req.Bods {
+		bods = append(bods, valueObject.BillOfDrySupply{DrySupplyID: b.DrySupplyId, QuantityPerUnit: b.QuantityPerUnit})
+	}
+	if err := s.AppService.ProductService.UpdateProduct(ctx, req.Id, req.Name, bods); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) UpdateDrySupply(ctx context.Context, req *drysupplypb.UpdateDrySupplyRequest) (*emptypb.Empty, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if err := s.DrySupplyService.UpdateDrySupply(ctx, req.Id, req.Name, int(req.ReorderPoint)); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) GetProductionOrdersBySaleOrder(ctx context.Context, req *productionorderpb.GetProductionOrdersBySaleOrderRequest) (*productionorderpb.GetProductionOrdersResponse, error) {
+	if req.SaleOrderId == "" {
+		return nil, status.Error(codes.InvalidArgument, "sale_order_id is required")
+	}
+	orders, err := s.AppService.ProductionOrderService.GetProductionOrdersBySaleOrder(ctx, req.SaleOrderId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	protoOrders := make([]*productionorderpb.ProductionOrder, 0, len(orders))
+	for i := range orders {
+		protoOrders = append(protoOrders, buildProtoProductionOrder(&orders[i]))
+	}
+	return &productionorderpb.GetProductionOrdersResponse{ProductionOrders: protoOrders}, nil
+}

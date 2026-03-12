@@ -537,3 +537,101 @@ func (r *InMemoryRepository) SearchCustomersBySocialReason(ctx context.Context, 
 	}
 	return result, nil
 }
+
+// ===== UPDATE METHODS =====
+
+func (r *InMemoryRepository) UpdateCustomer(ctx context.Context, id string, params customer_domain.UpdateCustomerParams) (*customer_domain.Customer, error) {
+	r.customersMutex.Lock()
+	defer r.customersMutex.Unlock()
+	for i := range r.Customers {
+		if r.Customers[i].GetID() == id {
+			if params.SocialReason != "" {
+				if err := r.Customers[i].SetSocialReason(params.SocialReason); err != nil {
+					return nil, err
+				}
+			}
+			if params.MarketType != "" {
+				if err := r.Customers[i].SetMarketType(params.MarketType); err != nil {
+					return nil, err
+				}
+			}
+			if params.Group != "" {
+				if err := r.Customers[i].SetGroup(params.Group); err != nil {
+					return nil, err
+				}
+			}
+			return &r.Customers[i], nil
+		}
+	}
+	return nil, errors.New("customer not found")
+}
+
+func (r *InMemoryRepository) UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error {
+	r.productsMutex.Lock()
+	defer r.productsMutex.Unlock()
+	for i := range r.Products {
+		if r.Products[i].GetID() == id {
+			updated, err := product.NewProductWithID(id, name, bods)
+			if err != nil {
+				return err
+			}
+			r.Products[i] = updated
+			return nil
+		}
+	}
+	return errors.New("product not found")
+}
+
+func (r *InMemoryRepository) UpdateDrySupply(ctx context.Context, id, name string, reorderPoint int) error {
+	r.drySupplyMutex.Lock()
+	defer r.drySupplyMutex.Unlock()
+	for i := range r.DrySupplies {
+		if r.DrySupplies[i].GetID() == id {
+			if name != "" {
+				if err := r.DrySupplies[i].SetName(name); err != nil {
+					return err
+				}
+			}
+			r.DrySupplies[i].SetReorderPoint(reorderPoint)
+			return nil
+		}
+	}
+	return errors.New("dry supply not found")
+}
+
+func (r *InMemoryRepository) GetProductionOrdersBySaleOrder(ctx context.Context, saleOrderID string) ([]production_order.ProductionOrder, error) {
+	r.productionOrdersMutex.RLock()
+	defer r.productionOrdersMutex.RUnlock()
+	var result []production_order.ProductionOrder
+	for _, o := range r.ProductionOrders {
+		if o.GetSalesOrderID() == saleOrderID {
+			result = append(result, o)
+		}
+	}
+	return result, nil
+}
+
+func (r *InMemoryRepository) GetDailyLotCount(ctx context.Context) (int, error) {
+	r.productInventoryMutex.RLock()
+	defer r.productInventoryMutex.RUnlock()
+	today := time.Now().UTC().Format("2006-01-02")
+	count := 0
+	for _, inv := range r.ProductInventory {
+		for _, m := range inv.GetMovements() {
+			if len(m.LotNumber) >= 8 && m.LotNumber[:2] == "L-" {
+				// Lot format: L-DDMMYY-NNN-XX → date part is chars 2-7 (DDMMYY)
+				// Convert DDMMYY to YYYY-MM-DD for comparison
+				if len(m.LotNumber) >= 9 {
+					d := m.LotNumber[2:8]
+					if len(d) == 6 {
+						lotDate := "20" + d[4:6] + "-" + d[2:4] + "-" + d[0:2]
+						if lotDate == today {
+							count++
+						}
+					}
+				}
+			}
+		}
+	}
+	return count, nil
+}

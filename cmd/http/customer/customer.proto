@@ -23,6 +23,13 @@ message CreateCustomerRequest {
   string group         = 3; // DISTRIBUTOR | WINE_SHOP | RESTAURANT | HOTEL | RETAIL | PRIVATE | EXPORT_AGENT
 }
 
+message UpdateCustomerRequest {
+  string id            = 1;
+  string social_reason = 2;
+  string market_type   = 3;
+  string group         = 4;
+}
+
 message GetCustomerByIDRequest {
   string id = 1;
 }
@@ -58,6 +65,7 @@ service CustomerService {
   rpc GetCustomerByID(GetCustomerByIDRequest)                   returns (Customer);
   rpc GetCustomers(google.protobuf.Empty)                       returns (GetCustomersResponse);
   rpc DeactivateCustomer(DeactivateCustomerRequest)             returns (Customer);
+  rpc UpdateCustomer(UpdateCustomerRequest)                     returns (Customer);
   rpc PlaceOrder(PlaceOrderRequest)                             returns (sale_order.SaleOrder);
   rpc GetOrdersByCustomer(GetOrdersByCustomerRequest)           returns (GetOrdersByCustomerResponse);
 }

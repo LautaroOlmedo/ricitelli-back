@@ -5,6 +5,6 @@ import (
 	"ricitelli-back/internal/domain/product"
 )
 
-func (s *Service) GetProducts(ctx context.Context) ([]product.Product, error) {
-	return s.productStorage.GetProducts(ctx)
+func (s *ProductService) GetProducts(ctx context.Context) ([]product.Product, error) {
+	return s.Storage.GetProducts(ctx)
 }

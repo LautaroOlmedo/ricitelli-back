@@ -29,8 +29,9 @@ type DrySupply struct {
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"` // SKU, e.g. "IF1156"
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"` // LABEL | CONTRAETIQUETA | BOX | CORK | CAPSULE | BOTTLE | OTHER
-	Unit          string                 `protobuf:"bytes,5,opt,name=unit,proto3" json:"unit,omitempty"`         // UNIT | BOX | KG
+	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`                              // LABEL | CONTRAETIQUETA | BOX | CORK | CAPSULE | BOTTLE | OTHER
+	Unit          string                 `protobuf:"bytes,5,opt,name=unit,proto3" json:"unit,omitempty"`                                      // UNIT | BOX | KG
+	ReorderPoint  int32                  `protobuf:"varint,6,opt,name=reorder_point,json=reorderPoint,proto3" json:"reorder_point,omitempty"` // minimum stock threshold for alerts (0 = no alert)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -98,6 +99,13 @@ func (x *DrySupply) GetUnit() string {
 		return x.Unit
 	}
 	return ""
+}
+
+func (x *DrySupply) GetReorderPoint() int32 {
+	if x != nil {
+		return x.ReorderPoint
+	}
+	return 0
 }
 
 // StockTricapa represents the three-layer stock model for a dry supply.
@@ -191,6 +199,7 @@ type CreateDrySupplyRequest struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
 	Unit          string                 `protobuf:"bytes,4,opt,name=unit,proto3" json:"unit,omitempty"`
+	ReorderPoint  int32                  `protobuf:"varint,5,opt,name=reorder_point,json=reorderPoint,proto3" json:"reorder_point,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,6 +262,73 @@ func (x *CreateDrySupplyRequest) GetUnit() string {
 	return ""
 }
 
+func (x *CreateDrySupplyRequest) GetReorderPoint() int32 {
+	if x != nil {
+		return x.ReorderPoint
+	}
+	return 0
+}
+
+type UpdateDrySupplyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ReorderPoint  int32                  `protobuf:"varint,3,opt,name=reorder_point,json=reorderPoint,proto3" json:"reorder_point,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDrySupplyRequest) Reset() {
+	*x = UpdateDrySupplyRequest{}
+	mi := &file_dry_supply_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDrySupplyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDrySupplyRequest) ProtoMessage() {}
+
+func (x *UpdateDrySupplyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dry_supply_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDrySupplyRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDrySupplyRequest) Descriptor() ([]byte, []int) {
+	return file_dry_supply_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *UpdateDrySupplyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateDrySupplyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateDrySupplyRequest) GetReorderPoint() int32 {
+	if x != nil {
+		return x.ReorderPoint
+	}
+	return 0
+}
+
 type GetDrySupplyByIDRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -262,7 +338,7 @@ type GetDrySupplyByIDRequest struct {
 
 func (x *GetDrySupplyByIDRequest) Reset() {
 	*x = GetDrySupplyByIDRequest{}
-	mi := &file_dry_supply_proto_msgTypes[3]
+	mi := &file_dry_supply_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -274,7 +350,7 @@ func (x *GetDrySupplyByIDRequest) String() string {
 func (*GetDrySupplyByIDRequest) ProtoMessage() {}
 
 func (x *GetDrySupplyByIDRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[3]
+	mi := &file_dry_supply_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -287,7 +363,7 @@ func (x *GetDrySupplyByIDRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDrySupplyByIDRequest.ProtoReflect.Descriptor instead.
 func (*GetDrySupplyByIDRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{3}
+	return file_dry_supply_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetDrySupplyByIDRequest) GetId() string {
@@ -306,7 +382,7 @@ type GetDrySuppliesResponse struct {
 
 func (x *GetDrySuppliesResponse) Reset() {
 	*x = GetDrySuppliesResponse{}
-	mi := &file_dry_supply_proto_msgTypes[4]
+	mi := &file_dry_supply_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -318,7 +394,7 @@ func (x *GetDrySuppliesResponse) String() string {
 func (*GetDrySuppliesResponse) ProtoMessage() {}
 
 func (x *GetDrySuppliesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[4]
+	mi := &file_dry_supply_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -331,7 +407,7 @@ func (x *GetDrySuppliesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDrySuppliesResponse.ProtoReflect.Descriptor instead.
 func (*GetDrySuppliesResponse) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{4}
+	return file_dry_supply_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDrySuppliesResponse) GetDrySupplies() []*DrySupply {
@@ -353,7 +429,7 @@ type AddStockRequest struct {
 
 func (x *AddStockRequest) Reset() {
 	*x = AddStockRequest{}
-	mi := &file_dry_supply_proto_msgTypes[5]
+	mi := &file_dry_supply_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -365,7 +441,7 @@ func (x *AddStockRequest) String() string {
 func (*AddStockRequest) ProtoMessage() {}
 
 func (x *AddStockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[5]
+	mi := &file_dry_supply_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +454,7 @@ func (x *AddStockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddStockRequest.ProtoReflect.Descriptor instead.
 func (*AddStockRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{5}
+	return file_dry_supply_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AddStockRequest) GetDrySupplyId() string {
@@ -411,7 +487,7 @@ type GetStockTricapaRequest struct {
 
 func (x *GetStockTricapaRequest) Reset() {
 	*x = GetStockTricapaRequest{}
-	mi := &file_dry_supply_proto_msgTypes[6]
+	mi := &file_dry_supply_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -423,7 +499,7 @@ func (x *GetStockTricapaRequest) String() string {
 func (*GetStockTricapaRequest) ProtoMessage() {}
 
 func (x *GetStockTricapaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[6]
+	mi := &file_dry_supply_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -436,7 +512,7 @@ func (x *GetStockTricapaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStockTricapaRequest.ProtoReflect.Descriptor instead.
 func (*GetStockTricapaRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{6}
+	return file_dry_supply_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetStockTricapaRequest) GetDrySupplyId() string {
@@ -458,7 +534,7 @@ type CommitStockRequest struct {
 
 func (x *CommitStockRequest) Reset() {
 	*x = CommitStockRequest{}
-	mi := &file_dry_supply_proto_msgTypes[7]
+	mi := &file_dry_supply_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -470,7 +546,7 @@ func (x *CommitStockRequest) String() string {
 func (*CommitStockRequest) ProtoMessage() {}
 
 func (x *CommitStockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[7]
+	mi := &file_dry_supply_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -483,7 +559,7 @@ func (x *CommitStockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommitStockRequest.ProtoReflect.Descriptor instead.
 func (*CommitStockRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{7}
+	return file_dry_supply_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CommitStockRequest) GetDrySupplyId() string {
@@ -519,7 +595,7 @@ type ReleaseStockRequest struct {
 
 func (x *ReleaseStockRequest) Reset() {
 	*x = ReleaseStockRequest{}
-	mi := &file_dry_supply_proto_msgTypes[8]
+	mi := &file_dry_supply_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +607,7 @@ func (x *ReleaseStockRequest) String() string {
 func (*ReleaseStockRequest) ProtoMessage() {}
 
 func (x *ReleaseStockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[8]
+	mi := &file_dry_supply_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +620,7 @@ func (x *ReleaseStockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReleaseStockRequest.ProtoReflect.Descriptor instead.
 func (*ReleaseStockRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{8}
+	return file_dry_supply_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ReleaseStockRequest) GetDrySupplyId() string {
@@ -580,7 +656,7 @@ type ConsumeStockRequest struct {
 
 func (x *ConsumeStockRequest) Reset() {
 	*x = ConsumeStockRequest{}
-	mi := &file_dry_supply_proto_msgTypes[9]
+	mi := &file_dry_supply_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +668,7 @@ func (x *ConsumeStockRequest) String() string {
 func (*ConsumeStockRequest) ProtoMessage() {}
 
 func (x *ConsumeStockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dry_supply_proto_msgTypes[9]
+	mi := &file_dry_supply_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +681,7 @@ func (x *ConsumeStockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsumeStockRequest.ProtoReflect.Descriptor instead.
 func (*ConsumeStockRequest) Descriptor() ([]byte, []int) {
-	return file_dry_supply_proto_rawDescGZIP(), []int{9}
+	return file_dry_supply_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ConsumeStockRequest) GetDrySupplyId() string {
@@ -634,25 +710,31 @@ var File_dry_supply_proto protoreflect.FileDescriptor
 const file_dry_supply_proto_rawDesc = "" +
 	"\n" +
 	"\x10dry_supply.proto\x12\n" +
-	"dry_supply\x1a\x1bgoogle/protobuf/empty.proto\"s\n" +
+	"dry_supply\x1a\x1bgoogle/protobuf/empty.proto\"\x98\x01\n" +
 	"\tDrySupply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
 	"\bcategory\x18\x04 \x01(\tR\bcategory\x12\x12\n" +
-	"\x04unit\x18\x05 \x01(\tR\x04unit\"\xd3\x01\n" +
+	"\x04unit\x18\x05 \x01(\tR\x04unit\x12#\n" +
+	"\rreorder_point\x18\x06 \x01(\x05R\freorderPoint\"\xd3\x01\n" +
 	"\fStockTricapa\x12\"\n" +
 	"\rdry_supply_id\x18\x01 \x01(\tR\vdrySupplyId\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12%\n" +
 	"\x0ephysical_stock\x18\x04 \x01(\x03R\rphysicalStock\x12'\n" +
 	"\x0fcommitted_stock\x18\x05 \x01(\x03R\x0ecommittedStock\x12'\n" +
-	"\x0favailable_stock\x18\x06 \x01(\x03R\x0eavailableStock\"p\n" +
+	"\x0favailable_stock\x18\x06 \x01(\x03R\x0eavailableStock\"\x95\x01\n" +
 	"\x16CreateDrySupplyRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x12\n" +
-	"\x04unit\x18\x04 \x01(\tR\x04unit\")\n" +
+	"\x04unit\x18\x04 \x01(\tR\x04unit\x12#\n" +
+	"\rreorder_point\x18\x05 \x01(\x05R\freorderPoint\"a\n" +
+	"\x16UpdateDrySupplyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
+	"\rreorder_point\x18\x03 \x01(\x05R\freorderPoint\")\n" +
 	"\x17GetDrySupplyByIDRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
 	"\x16GetDrySuppliesResponse\x128\n" +
@@ -674,11 +756,12 @@ const file_dry_supply_proto_rawDesc = "" +
 	"\x13ConsumeStockRequest\x12\"\n" +
 	"\rdry_supply_id\x18\x01 \x01(\tR\vdrySupplyId\x12\x1a\n" +
 	"\bquantity\x18\x02 \x01(\x04R\bquantity\x12\x1c\n" +
-	"\treference\x18\x03 \x01(\tR\treference2\xe9\x04\n" +
+	"\treference\x18\x03 \x01(\tR\treference2\xb8\x05\n" +
 	"\x10DrySupplyService\x12L\n" +
 	"\x0fCreateDrySupply\x12\".dry_supply.CreateDrySupplyRequest\x1a\x15.dry_supply.DrySupply\x12N\n" +
 	"\x10GetDrySupplyByID\x12#.dry_supply.GetDrySupplyByIDRequest\x1a\x15.dry_supply.DrySupply\x12L\n" +
-	"\x0eGetDrySupplies\x12\x16.google.protobuf.Empty\x1a\".dry_supply.GetDrySuppliesResponse\x12?\n" +
+	"\x0eGetDrySupplies\x12\x16.google.protobuf.Empty\x1a\".dry_supply.GetDrySuppliesResponse\x12M\n" +
+	"\x0fUpdateDrySupply\x12\".dry_supply.UpdateDrySupplyRequest\x1a\x16.google.protobuf.Empty\x12?\n" +
 	"\bAddStock\x12\x1b.dry_supply.AddStockRequest\x1a\x16.google.protobuf.Empty\x12O\n" +
 	"\x0fGetStockTricapa\x12\".dry_supply.GetStockTricapaRequest\x1a\x18.dry_supply.StockTricapa\x12E\n" +
 	"\vCommitStock\x12\x1e.dry_supply.CommitStockRequest\x1a\x16.google.protobuf.Empty\x12G\n" +
@@ -697,40 +780,43 @@ func file_dry_supply_proto_rawDescGZIP() []byte {
 	return file_dry_supply_proto_rawDescData
 }
 
-var file_dry_supply_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_dry_supply_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_dry_supply_proto_goTypes = []any{
 	(*DrySupply)(nil),               // 0: dry_supply.DrySupply
 	(*StockTricapa)(nil),            // 1: dry_supply.StockTricapa
 	(*CreateDrySupplyRequest)(nil),  // 2: dry_supply.CreateDrySupplyRequest
-	(*GetDrySupplyByIDRequest)(nil), // 3: dry_supply.GetDrySupplyByIDRequest
-	(*GetDrySuppliesResponse)(nil),  // 4: dry_supply.GetDrySuppliesResponse
-	(*AddStockRequest)(nil),         // 5: dry_supply.AddStockRequest
-	(*GetStockTricapaRequest)(nil),  // 6: dry_supply.GetStockTricapaRequest
-	(*CommitStockRequest)(nil),      // 7: dry_supply.CommitStockRequest
-	(*ReleaseStockRequest)(nil),     // 8: dry_supply.ReleaseStockRequest
-	(*ConsumeStockRequest)(nil),     // 9: dry_supply.ConsumeStockRequest
-	(*empty.Empty)(nil),             // 10: google.protobuf.Empty
+	(*UpdateDrySupplyRequest)(nil),  // 3: dry_supply.UpdateDrySupplyRequest
+	(*GetDrySupplyByIDRequest)(nil), // 4: dry_supply.GetDrySupplyByIDRequest
+	(*GetDrySuppliesResponse)(nil),  // 5: dry_supply.GetDrySuppliesResponse
+	(*AddStockRequest)(nil),         // 6: dry_supply.AddStockRequest
+	(*GetStockTricapaRequest)(nil),  // 7: dry_supply.GetStockTricapaRequest
+	(*CommitStockRequest)(nil),      // 8: dry_supply.CommitStockRequest
+	(*ReleaseStockRequest)(nil),     // 9: dry_supply.ReleaseStockRequest
+	(*ConsumeStockRequest)(nil),     // 10: dry_supply.ConsumeStockRequest
+	(*empty.Empty)(nil),             // 11: google.protobuf.Empty
 }
 var file_dry_supply_proto_depIdxs = []int32{
 	0,  // 0: dry_supply.GetDrySuppliesResponse.dry_supplies:type_name -> dry_supply.DrySupply
 	2,  // 1: dry_supply.DrySupplyService.CreateDrySupply:input_type -> dry_supply.CreateDrySupplyRequest
-	3,  // 2: dry_supply.DrySupplyService.GetDrySupplyByID:input_type -> dry_supply.GetDrySupplyByIDRequest
-	10, // 3: dry_supply.DrySupplyService.GetDrySupplies:input_type -> google.protobuf.Empty
-	5,  // 4: dry_supply.DrySupplyService.AddStock:input_type -> dry_supply.AddStockRequest
-	6,  // 5: dry_supply.DrySupplyService.GetStockTricapa:input_type -> dry_supply.GetStockTricapaRequest
-	7,  // 6: dry_supply.DrySupplyService.CommitStock:input_type -> dry_supply.CommitStockRequest
-	8,  // 7: dry_supply.DrySupplyService.ReleaseStock:input_type -> dry_supply.ReleaseStockRequest
-	9,  // 8: dry_supply.DrySupplyService.ConsumeStock:input_type -> dry_supply.ConsumeStockRequest
-	0,  // 9: dry_supply.DrySupplyService.CreateDrySupply:output_type -> dry_supply.DrySupply
-	0,  // 10: dry_supply.DrySupplyService.GetDrySupplyByID:output_type -> dry_supply.DrySupply
-	4,  // 11: dry_supply.DrySupplyService.GetDrySupplies:output_type -> dry_supply.GetDrySuppliesResponse
-	10, // 12: dry_supply.DrySupplyService.AddStock:output_type -> google.protobuf.Empty
-	1,  // 13: dry_supply.DrySupplyService.GetStockTricapa:output_type -> dry_supply.StockTricapa
-	10, // 14: dry_supply.DrySupplyService.CommitStock:output_type -> google.protobuf.Empty
-	10, // 15: dry_supply.DrySupplyService.ReleaseStock:output_type -> google.protobuf.Empty
-	10, // 16: dry_supply.DrySupplyService.ConsumeStock:output_type -> google.protobuf.Empty
-	9,  // [9:17] is the sub-list for method output_type
-	1,  // [1:9] is the sub-list for method input_type
+	4,  // 2: dry_supply.DrySupplyService.GetDrySupplyByID:input_type -> dry_supply.GetDrySupplyByIDRequest
+	11, // 3: dry_supply.DrySupplyService.GetDrySupplies:input_type -> google.protobuf.Empty
+	3,  // 4: dry_supply.DrySupplyService.UpdateDrySupply:input_type -> dry_supply.UpdateDrySupplyRequest
+	6,  // 5: dry_supply.DrySupplyService.AddStock:input_type -> dry_supply.AddStockRequest
+	7,  // 6: dry_supply.DrySupplyService.GetStockTricapa:input_type -> dry_supply.GetStockTricapaRequest
+	8,  // 7: dry_supply.DrySupplyService.CommitStock:input_type -> dry_supply.CommitStockRequest
+	9,  // 8: dry_supply.DrySupplyService.ReleaseStock:input_type -> dry_supply.ReleaseStockRequest
+	10, // 9: dry_supply.DrySupplyService.ConsumeStock:input_type -> dry_supply.ConsumeStockRequest
+	0,  // 10: dry_supply.DrySupplyService.CreateDrySupply:output_type -> dry_supply.DrySupply
+	0,  // 11: dry_supply.DrySupplyService.GetDrySupplyByID:output_type -> dry_supply.DrySupply
+	5,  // 12: dry_supply.DrySupplyService.GetDrySupplies:output_type -> dry_supply.GetDrySuppliesResponse
+	11, // 13: dry_supply.DrySupplyService.UpdateDrySupply:output_type -> google.protobuf.Empty
+	11, // 14: dry_supply.DrySupplyService.AddStock:output_type -> google.protobuf.Empty
+	1,  // 15: dry_supply.DrySupplyService.GetStockTricapa:output_type -> dry_supply.StockTricapa
+	11, // 16: dry_supply.DrySupplyService.CommitStock:output_type -> google.protobuf.Empty
+	11, // 17: dry_supply.DrySupplyService.ReleaseStock:output_type -> google.protobuf.Empty
+	11, // 18: dry_supply.DrySupplyService.ConsumeStock:output_type -> google.protobuf.Empty
+	10, // [10:19] is the sub-list for method output_type
+	1,  // [1:10] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -747,7 +833,7 @@ func file_dry_supply_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dry_supply_proto_rawDesc), len(file_dry_supply_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

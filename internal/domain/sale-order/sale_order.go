@@ -145,3 +145,20 @@ func (s *SaleOrder) GetItems() []valueObject.SaleOrderItem {
 	copy(itemsCopy, s.items)
 	return itemsCopy
 }
+
+// ReconstitueSaleOrder reconstitutes a SaleOrder from stored data (bypasses validation).
+func ReconstitueSaleOrder(id, customerID string, status Status, items []valueObject.SaleOrderItem,
+	currency Currency, market Market, destinationCountry string, saleType SaleType, createdAt string, active bool) SaleOrder {
+	return SaleOrder{
+		id:                 id,
+		customerID:         customerID,
+		status:             status,
+		items:              items,
+		currency:           currency,
+		market:             market,
+		destinationCountry: destinationCountry,
+		saleType:           saleType,
+		createdAt:          createdAt,
+		active:             active,
+	}
+}

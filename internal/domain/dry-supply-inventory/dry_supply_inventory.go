@@ -128,3 +128,12 @@ func (d *DrySupplyInventory) Consume(quantity uint64, reference string) error {
 	d.movements = append(d.movements, m)
 	return nil
 }
+
+// ReconstitueDrySupplyInventory reconstitutes a DrySupplyInventory from stored data.
+func ReconstitueDrySupplyInventory(id, drySupplyID string, movements []valueObject.DrySupplyMovement) DrySupplyInventory {
+	return DrySupplyInventory{
+		id:          id,
+		drySupplyID: drySupplyID,
+		movements:   movements,
+	}
+}

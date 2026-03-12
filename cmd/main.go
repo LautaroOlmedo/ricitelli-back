@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	authpb "ricitelli-back/cmd/http/gen/auth"
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
 	customerpb "ricitelli-back/cmd/http/gen/customer"
 	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
@@ -13,7 +14,9 @@ import (
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
 	"ricitelli-back/cmd/http/server"
 	"ricitelli-back/config"
-	repository "ricitelli-back/internal/infraestructure/in-memory"
+	"ricitelli-back/internal/auth"
+	inmemory "ricitelli-back/internal/infraestructure/in-memory"
+	pgstore "ricitelli-back/internal/infraestructure/postgres"
 	application_service "ricitelli-back/internal/service/application-service"
 	customer_svc "ricitelli-back/internal/service/customer"
 	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
@@ -29,33 +32,57 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// Repository layer (shared in-memory store)
-	memoryRepo := repository.NewInMemoryRepository()
+	if cfg.DatabaseURL != "" {
+		log.Printf("connecting to PostgreSQL…\n")
+		pgRepo, err := pgstore.NewRepository(cfg.DatabaseURL)
+		if err != nil {
+			log.Fatalf("failed to connect to database: %v", err)
+		}
+		log.Println("PostgreSQL connected and migrations applied")
+		boot(cfg,
+			product.NewProductService(pgRepo),
+			product_inventory.NewProductInventoryService(pgRepo),
+			production_order.NewProductionOrderService(pgRepo),
+			sale_order.NewSaleOrderService(pgRepo),
+			dry_supply_svc.NewDrySupplyService(pgRepo),
+			customer_svc.NewCustomerService(pgRepo, pgRepo),
+		)
+		return
+	}
 
-	// Domain services
-	productService := product.NewProductService(memoryRepo)
-	productInventoryService := product_inventory.NewProductInventoryService(memoryRepo)
-	productionOrderService := production_order.NewProductionOrderService(memoryRepo)
-	saleOrderService := sale_order.NewSaleOrderService(memoryRepo)
-	drySupplyService := dry_supply_svc.NewDrySupplyService(memoryRepo)
-	customerService := customer_svc.NewCustomerService(memoryRepo, memoryRepo)
+	log.Println("DATABASE_URL not set — using in-memory repository")
+	r := inmemory.NewInMemoryRepository()
+	boot(cfg,
+		product.NewProductService(r),
+		product_inventory.NewProductInventoryService(r),
+		production_order.NewProductionOrderService(r),
+		sale_order.NewSaleOrderService(r),
+		dry_supply_svc.NewDrySupplyService(r),
+		customer_svc.NewCustomerService(r, r),
+	)
+}
 
-	// Application (orchestration) service
-	applicationService := application_service.NewApplicationService(
-		customerService,
-		saleOrderService,
-		productionOrderService,
-		productService,
-		productInventoryService,
-		drySupplyService,
+func boot(
+	cfg config.Config,
+	productSvc *product.ProductService,
+	productInvSvc *product_inventory.Service,
+	productionOrderSvc *production_order.Service,
+	saleOrderSvc *sale_order.Service,
+	drySupplySvc *dry_supply_svc.Service,
+	customerSvc *customer_svc.Service,
+) {
+	appSvc := application_service.NewApplicationService(
+		customerSvc, saleOrderSvc, productionOrderSvc,
+		productSvc, productInvSvc, drySupplySvc,
 	)
 
-	// Inventory service (cross-domain tricapa reads)
-	inventoryService := inventory_svc.NewInventoryService(memoryRepo, memoryRepo, memoryRepo)
+	inventorySvc := inventory_svc.NewInventoryService(productSvc, productInvSvc, drySupplySvc)
 
-	// gRPC server
-	grpcServer := grpc.NewServer()
-	svc := server.NewServer(applicationService, drySupplyService, inventoryService, customerService)
+	interceptor := auth.NewUnaryInterceptor(cfg.JWTSecret)
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptor))
+
+	svc := server.NewServer(appSvc, drySupplySvc, inventorySvc, customerSvc)
+	authSvc := server.NewAuthServer(cfg.JWTSecret, cfg.AdminUser, cfg.AdminPass)
 
 	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
@@ -64,12 +91,12 @@ func main() {
 	drysupplypb.RegisterDrySupplyServiceServer(grpcServer, svc)
 	inventorypb.RegisterInventoryServiceServer(grpcServer, svc)
 	customerpb.RegisterCustomerServiceServer(grpcServer, svc)
+	authpb.RegisterAuthServiceServer(grpcServer, authSvc)
 
 	lis, err := net.Listen("tcp", cfg.Port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
 	log.Printf("gRPC server listening on %s\n", cfg.Port)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

@@ -20,9 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProductionOrderService_CreateProductionOrder_FullMethodName  = "/production_order.ProductionOrderService/CreateProductionOrder"
-	ProductionOrderService_GetProductionOrderByID_FullMethodName = "/production_order.ProductionOrderService/GetProductionOrderByID"
-	ProductionOrderService_GetProductionOrders_FullMethodName    = "/production_order.ProductionOrderService/GetProductionOrders"
+	ProductionOrderService_CreateProductionOrder_FullMethodName          = "/production_order.ProductionOrderService/CreateProductionOrder"
+	ProductionOrderService_GetProductionOrderByID_FullMethodName         = "/production_order.ProductionOrderService/GetProductionOrderByID"
+	ProductionOrderService_GetProductionOrders_FullMethodName            = "/production_order.ProductionOrderService/GetProductionOrders"
+	ProductionOrderService_GetProductionOrdersBySaleOrder_FullMethodName = "/production_order.ProductionOrderService/GetProductionOrdersBySaleOrder"
 )
 
 // ProductionOrderServiceClient is the client API for ProductionOrderService service.
@@ -34,6 +35,7 @@ type ProductionOrderServiceClient interface {
 	CreateProductionOrder(ctx context.Context, in *CreateProductionOrderRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetProductionOrderByID(ctx context.Context, in *GetProductionOrderByIDRequest, opts ...grpc.CallOption) (*ProductionOrder, error)
 	GetProductionOrders(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetProductionOrdersResponse, error)
+	GetProductionOrdersBySaleOrder(ctx context.Context, in *GetProductionOrdersBySaleOrderRequest, opts ...grpc.CallOption) (*GetProductionOrdersResponse, error)
 }
 
 type productionOrderServiceClient struct {
@@ -74,6 +76,16 @@ func (c *productionOrderServiceClient) GetProductionOrders(ctx context.Context, 
 	return out, nil
 }
 
+func (c *productionOrderServiceClient) GetProductionOrdersBySaleOrder(ctx context.Context, in *GetProductionOrdersBySaleOrderRequest, opts ...grpc.CallOption) (*GetProductionOrdersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProductionOrdersResponse)
+	err := c.cc.Invoke(ctx, ProductionOrderService_GetProductionOrdersBySaleOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductionOrderServiceServer is the server API for ProductionOrderService service.
 // All implementations must embed UnimplementedProductionOrderServiceServer
 // for forward compatibility.
@@ -83,6 +95,7 @@ type ProductionOrderServiceServer interface {
 	CreateProductionOrder(context.Context, *CreateProductionOrderRequest) (*empty.Empty, error)
 	GetProductionOrderByID(context.Context, *GetProductionOrderByIDRequest) (*ProductionOrder, error)
 	GetProductionOrders(context.Context, *empty.Empty) (*GetProductionOrdersResponse, error)
+	GetProductionOrdersBySaleOrder(context.Context, *GetProductionOrdersBySaleOrderRequest) (*GetProductionOrdersResponse, error)
 	mustEmbedUnimplementedProductionOrderServiceServer()
 }
 
@@ -101,6 +114,9 @@ func (UnimplementedProductionOrderServiceServer) GetProductionOrderByID(context.
 }
 func (UnimplementedProductionOrderServiceServer) GetProductionOrders(context.Context, *empty.Empty) (*GetProductionOrdersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProductionOrders not implemented")
+}
+func (UnimplementedProductionOrderServiceServer) GetProductionOrdersBySaleOrder(context.Context, *GetProductionOrdersBySaleOrderRequest) (*GetProductionOrdersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProductionOrdersBySaleOrder not implemented")
 }
 func (UnimplementedProductionOrderServiceServer) mustEmbedUnimplementedProductionOrderServiceServer() {
 }
@@ -178,6 +194,24 @@ func _ProductionOrderService_GetProductionOrders_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductionOrderService_GetProductionOrdersBySaleOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProductionOrdersBySaleOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductionOrderServiceServer).GetProductionOrdersBySaleOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProductionOrderService_GetProductionOrdersBySaleOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductionOrderServiceServer).GetProductionOrdersBySaleOrder(ctx, req.(*GetProductionOrdersBySaleOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProductionOrderService_ServiceDesc is the grpc.ServiceDesc for ProductionOrderService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,6 +230,10 @@ var ProductionOrderService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProductionOrders",
 			Handler:    _ProductionOrderService_GetProductionOrders_Handler,
+		},
+		{
+			MethodName: "GetProductionOrdersBySaleOrder",
+			Handler:    _ProductionOrderService_GetProductionOrdersBySaleOrder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

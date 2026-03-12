@@ -310,6 +310,50 @@ func (x *GetProductionOrderByIDRequest) GetId() string {
 	return ""
 }
 
+type GetProductionOrdersBySaleOrderRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SaleOrderId   string                 `protobuf:"bytes,1,opt,name=sale_order_id,json=saleOrderId,proto3" json:"sale_order_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProductionOrdersBySaleOrderRequest) Reset() {
+	*x = GetProductionOrdersBySaleOrderRequest{}
+	mi := &file_production_order_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProductionOrdersBySaleOrderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProductionOrdersBySaleOrderRequest) ProtoMessage() {}
+
+func (x *GetProductionOrdersBySaleOrderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_production_order_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProductionOrdersBySaleOrderRequest.ProtoReflect.Descriptor instead.
+func (*GetProductionOrdersBySaleOrderRequest) Descriptor() ([]byte, []int) {
+	return file_production_order_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetProductionOrdersBySaleOrderRequest) GetSaleOrderId() string {
+	if x != nil {
+		return x.SaleOrderId
+	}
+	return ""
+}
+
 type GetProductionOrdersResponse struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	ProductionOrders []*ProductionOrder     `protobuf:"bytes,1,rep,name=production_orders,json=productionOrders,proto3" json:"production_orders,omitempty"`
@@ -319,7 +363,7 @@ type GetProductionOrdersResponse struct {
 
 func (x *GetProductionOrdersResponse) Reset() {
 	*x = GetProductionOrdersResponse{}
-	mi := &file_production_order_proto_msgTypes[5]
+	mi := &file_production_order_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +375,7 @@ func (x *GetProductionOrdersResponse) String() string {
 func (*GetProductionOrdersResponse) ProtoMessage() {}
 
 func (x *GetProductionOrdersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_production_order_proto_msgTypes[5]
+	mi := &file_production_order_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +388,7 @@ func (x *GetProductionOrdersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProductionOrdersResponse.ProtoReflect.Descriptor instead.
 func (*GetProductionOrdersResponse) Descriptor() ([]byte, []int) {
-	return file_production_order_proto_rawDescGZIP(), []int{5}
+	return file_production_order_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetProductionOrdersResponse) GetProductionOrders() []*ProductionOrder {
@@ -378,13 +422,16 @@ const file_production_order_proto_rawDesc = "" +
 	"\rsale_order_id\x18\x01 \x01(\tR\vsaleOrderId\x126\n" +
 	"\x05items\x18\x02 \x03(\v2 .production_order.ProductionItemR\x05items\"/\n" +
 	"\x1dGetProductionOrderByIDRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"m\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
+	"%GetProductionOrdersBySaleOrderRequest\x12\"\n" +
+	"\rsale_order_id\x18\x01 \x01(\tR\vsaleOrderId\"m\n" +
 	"\x1bGetProductionOrdersResponse\x12N\n" +
-	"\x11production_orders\x18\x01 \x03(\v2!.production_order.ProductionOrderR\x10productionOrders2\xc5\x02\n" +
+	"\x11production_orders\x18\x01 \x03(\v2!.production_order.ProductionOrderR\x10productionOrders2\xd0\x03\n" +
 	"\x16ProductionOrderService\x12_\n" +
 	"\x15CreateProductionOrder\x12..production_order.CreateProductionOrderRequest\x1a\x16.google.protobuf.Empty\x12l\n" +
 	"\x16GetProductionOrderByID\x12/.production_order.GetProductionOrderByIDRequest\x1a!.production_order.ProductionOrder\x12\\\n" +
-	"\x13GetProductionOrders\x12\x16.google.protobuf.Empty\x1a-.production_order.GetProductionOrdersResponseB@Z>ricitelli-back/cmd/http/gen/production_order;productionorderpbb\x06proto3"
+	"\x13GetProductionOrders\x12\x16.google.protobuf.Empty\x1a-.production_order.GetProductionOrdersResponse\x12\x88\x01\n" +
+	"\x1eGetProductionOrdersBySaleOrder\x127.production_order.GetProductionOrdersBySaleOrderRequest\x1a-.production_order.GetProductionOrdersResponseB@Z>ricitelli-back/cmd/http/gen/production_order;productionorderpbb\x06proto3"
 
 var (
 	file_production_order_proto_rawDescOnce sync.Once
@@ -398,15 +445,16 @@ func file_production_order_proto_rawDescGZIP() []byte {
 	return file_production_order_proto_rawDescData
 }
 
-var file_production_order_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_production_order_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_production_order_proto_goTypes = []any{
-	(*MaterialRequirement)(nil),           // 0: production_order.MaterialRequirement
-	(*ProductionItem)(nil),                // 1: production_order.ProductionItem
-	(*ProductionOrder)(nil),               // 2: production_order.ProductionOrder
-	(*CreateProductionOrderRequest)(nil),  // 3: production_order.CreateProductionOrderRequest
-	(*GetProductionOrderByIDRequest)(nil), // 4: production_order.GetProductionOrderByIDRequest
-	(*GetProductionOrdersResponse)(nil),   // 5: production_order.GetProductionOrdersResponse
-	(*empty.Empty)(nil),                   // 6: google.protobuf.Empty
+	(*MaterialRequirement)(nil),                   // 0: production_order.MaterialRequirement
+	(*ProductionItem)(nil),                        // 1: production_order.ProductionItem
+	(*ProductionOrder)(nil),                       // 2: production_order.ProductionOrder
+	(*CreateProductionOrderRequest)(nil),          // 3: production_order.CreateProductionOrderRequest
+	(*GetProductionOrderByIDRequest)(nil),         // 4: production_order.GetProductionOrderByIDRequest
+	(*GetProductionOrdersBySaleOrderRequest)(nil), // 5: production_order.GetProductionOrdersBySaleOrderRequest
+	(*GetProductionOrdersResponse)(nil),           // 6: production_order.GetProductionOrdersResponse
+	(*empty.Empty)(nil),                           // 7: google.protobuf.Empty
 }
 var file_production_order_proto_depIdxs = []int32{
 	0, // 0: production_order.ProductionItem.requirements:type_name -> production_order.MaterialRequirement
@@ -415,12 +463,14 @@ var file_production_order_proto_depIdxs = []int32{
 	2, // 3: production_order.GetProductionOrdersResponse.production_orders:type_name -> production_order.ProductionOrder
 	3, // 4: production_order.ProductionOrderService.CreateProductionOrder:input_type -> production_order.CreateProductionOrderRequest
 	4, // 5: production_order.ProductionOrderService.GetProductionOrderByID:input_type -> production_order.GetProductionOrderByIDRequest
-	6, // 6: production_order.ProductionOrderService.GetProductionOrders:input_type -> google.protobuf.Empty
-	6, // 7: production_order.ProductionOrderService.CreateProductionOrder:output_type -> google.protobuf.Empty
-	2, // 8: production_order.ProductionOrderService.GetProductionOrderByID:output_type -> production_order.ProductionOrder
-	5, // 9: production_order.ProductionOrderService.GetProductionOrders:output_type -> production_order.GetProductionOrdersResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
+	7, // 6: production_order.ProductionOrderService.GetProductionOrders:input_type -> google.protobuf.Empty
+	5, // 7: production_order.ProductionOrderService.GetProductionOrdersBySaleOrder:input_type -> production_order.GetProductionOrdersBySaleOrderRequest
+	7, // 8: production_order.ProductionOrderService.CreateProductionOrder:output_type -> google.protobuf.Empty
+	2, // 9: production_order.ProductionOrderService.GetProductionOrderByID:output_type -> production_order.ProductionOrder
+	6, // 10: production_order.ProductionOrderService.GetProductionOrders:output_type -> production_order.GetProductionOrdersResponse
+	6, // 11: production_order.ProductionOrderService.GetProductionOrdersBySaleOrder:output_type -> production_order.GetProductionOrdersResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
 	4, // [4:4] is the sub-list for extension extendee
 	0, // [0:4] is the sub-list for field type_name
@@ -437,7 +487,7 @@ func file_production_order_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_production_order_proto_rawDesc), len(file_production_order_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: riccitelli-postgres
+    environment:
+      POSTGRES_USER: riccitelli
+      POSTGRES_PASSWORD: riccitelli
+      POSTGRES_DB: riccitelli
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

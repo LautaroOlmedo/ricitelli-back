@@ -97,6 +97,42 @@ func NewCustomerWithID(id string, params NewCustomerParams) (Customer, error) {
 	return c, nil
 }
 
+// ReconstitueCustomer reconstitutes a Customer from stored data (bypasses validation).
+func ReconstitueCustomer(id, socialReason string, marketType MarketType, group Group, active bool, createdAt string) Customer {
+	return Customer{
+		id:           id,
+		socialReason: socialReason,
+		marketType:   marketType,
+		group:        group,
+		active:       active,
+		createdAt:    createdAt,
+	}
+}
+
+func (c *Customer) SetSocialReason(v string) error {
+	if v == "" {
+		return ErrEmptySocialReason
+	}
+	c.socialReason = v
+	return nil
+}
+
+func (c *Customer) SetMarketType(v MarketType) error {
+	if !validMarketTypes[v] {
+		return ErrInvalidMarketType
+	}
+	c.marketType = v
+	return nil
+}
+
+func (c *Customer) SetGroup(v Group) error {
+	if !validGroups[v] {
+		return ErrInvalidGroup
+	}
+	c.group = v
+	return nil
+}
+
 // Deactivate soft-deletes the customer.
 func (c *Customer) Deactivate() error {
 	if !c.active {
@@ -112,3 +148,10 @@ func (c *Customer) GetMarketType() MarketType { return c.marketType }
 func (c *Customer) GetGroup() Group           { return c.group }
 func (c *Customer) IsActive() bool            { return c.active }
 func (c *Customer) GetCreatedAt() string      { return c.createdAt }
+
+// UpdateCustomerParams holds the fields that can be updated on an existing customer.
+type UpdateCustomerParams struct {
+	SocialReason string
+	MarketType   MarketType
+	Group        Group
+}

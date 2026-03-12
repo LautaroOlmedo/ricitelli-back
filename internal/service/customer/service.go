@@ -13,6 +13,7 @@ type CustomerStorage interface {
 	GetCustomerByID(ctx context.Context, id string) (*customer_domain.Customer, error)
 	GetCustomers(ctx context.Context) ([]customer_domain.Customer, error)
 	DeactivateCustomer(ctx context.Context, id string) (*customer_domain.Customer, error)
+	UpdateCustomer(ctx context.Context, id string, params customer_domain.UpdateCustomerParams) (*customer_domain.Customer, error)
 	SearchCustomersBySocialReason(ctx context.Context, query string) ([]customer_domain.Customer, error)
 }
 

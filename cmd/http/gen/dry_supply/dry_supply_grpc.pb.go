@@ -23,6 +23,7 @@ const (
 	DrySupplyService_CreateDrySupply_FullMethodName  = "/dry_supply.DrySupplyService/CreateDrySupply"
 	DrySupplyService_GetDrySupplyByID_FullMethodName = "/dry_supply.DrySupplyService/GetDrySupplyByID"
 	DrySupplyService_GetDrySupplies_FullMethodName   = "/dry_supply.DrySupplyService/GetDrySupplies"
+	DrySupplyService_UpdateDrySupply_FullMethodName  = "/dry_supply.DrySupplyService/UpdateDrySupply"
 	DrySupplyService_AddStock_FullMethodName         = "/dry_supply.DrySupplyService/AddStock"
 	DrySupplyService_GetStockTricapa_FullMethodName  = "/dry_supply.DrySupplyService/GetStockTricapa"
 	DrySupplyService_CommitStock_FullMethodName      = "/dry_supply.DrySupplyService/CommitStock"
@@ -37,6 +38,7 @@ type DrySupplyServiceClient interface {
 	CreateDrySupply(ctx context.Context, in *CreateDrySupplyRequest, opts ...grpc.CallOption) (*DrySupply, error)
 	GetDrySupplyByID(ctx context.Context, in *GetDrySupplyByIDRequest, opts ...grpc.CallOption) (*DrySupply, error)
 	GetDrySupplies(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetDrySuppliesResponse, error)
+	UpdateDrySupply(ctx context.Context, in *UpdateDrySupplyRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	AddStock(ctx context.Context, in *AddStockRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	GetStockTricapa(ctx context.Context, in *GetStockTricapaRequest, opts ...grpc.CallOption) (*StockTricapa, error)
 	CommitStock(ctx context.Context, in *CommitStockRequest, opts ...grpc.CallOption) (*empty.Empty, error)
@@ -76,6 +78,16 @@ func (c *drySupplyServiceClient) GetDrySupplies(ctx context.Context, in *empty.E
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDrySuppliesResponse)
 	err := c.cc.Invoke(ctx, DrySupplyService_GetDrySupplies_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *drySupplyServiceClient) UpdateDrySupply(ctx context.Context, in *UpdateDrySupplyRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, DrySupplyService_UpdateDrySupply_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +151,7 @@ type DrySupplyServiceServer interface {
 	CreateDrySupply(context.Context, *CreateDrySupplyRequest) (*DrySupply, error)
 	GetDrySupplyByID(context.Context, *GetDrySupplyByIDRequest) (*DrySupply, error)
 	GetDrySupplies(context.Context, *empty.Empty) (*GetDrySuppliesResponse, error)
+	UpdateDrySupply(context.Context, *UpdateDrySupplyRequest) (*empty.Empty, error)
 	AddStock(context.Context, *AddStockRequest) (*empty.Empty, error)
 	GetStockTricapa(context.Context, *GetStockTricapaRequest) (*StockTricapa, error)
 	CommitStock(context.Context, *CommitStockRequest) (*empty.Empty, error)
@@ -162,6 +175,9 @@ func (UnimplementedDrySupplyServiceServer) GetDrySupplyByID(context.Context, *Ge
 }
 func (UnimplementedDrySupplyServiceServer) GetDrySupplies(context.Context, *empty.Empty) (*GetDrySuppliesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDrySupplies not implemented")
+}
+func (UnimplementedDrySupplyServiceServer) UpdateDrySupply(context.Context, *UpdateDrySupplyRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDrySupply not implemented")
 }
 func (UnimplementedDrySupplyServiceServer) AddStock(context.Context, *AddStockRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddStock not implemented")
@@ -249,6 +265,24 @@ func _DrySupplyService_GetDrySupplies_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DrySupplyServiceServer).GetDrySupplies(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DrySupplyService_UpdateDrySupply_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDrySupplyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DrySupplyServiceServer).UpdateDrySupply(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DrySupplyService_UpdateDrySupply_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DrySupplyServiceServer).UpdateDrySupply(ctx, req.(*UpdateDrySupplyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -361,6 +395,10 @@ var DrySupplyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDrySupplies",
 			Handler:    _DrySupplyService_GetDrySupplies_Handler,
+		},
+		{
+			MethodName: "UpdateDrySupply",
+			Handler:    _DrySupplyService_UpdateDrySupply_Handler,
 		},
 		{
 			MethodName: "AddStock",

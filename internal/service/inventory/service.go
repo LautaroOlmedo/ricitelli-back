@@ -50,7 +50,7 @@ type ProductInventoryStorage interface {
 type DrySupplyStorage interface {
 	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
 	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
-	SaveDrySupplyInventory(ctx context.Context, inv dry_supply_inventory.DrySupplyInventory) error
+	GetDailyLotCount(ctx context.Context) (int, error)
 }
 
 const defaultLowStockThreshold = 500
@@ -128,7 +128,7 @@ func (s *Service) GetInventoryReport(ctx context.Context) (*InventoryReport, err
 			Physical:    inv.PhysicalStock(),
 			Committed:   inv.CommittedStock(),
 			Available:   available,
-			IsLow:       available < defaultLowStockThreshold,
+			IsLow:       ds.GetReorderPoint() > 0 && available < int64(ds.GetReorderPoint()),
 		})
 	}
 
@@ -161,10 +161,15 @@ func (s *Service) GetProductTricapa(ctx context.Context, productID string) (*Pro
 }
 
 // ConvertSVtoPT converts undressed (SV) wine to dressed (PT) and assigns a lot number.
+// If lotNumber is empty, one is generated automatically in the format L-DDMMYY-NNN-XX.
 func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity uint64, lotNumber string) error {
 	inv, err := s.productInventory.GetProductInventory(productID)
 	if err != nil {
 		return err
+	}
+	if lotNumber == "" {
+		dailyCount, _ := s.drySupplyStorage.GetDailyLotCount(ctx)
+		lotNumber = GenerateLotNumber(productID, dailyCount+1)
 	}
 	if err := inv.ConvertSVtoPT("manual-conversion", quantity, lotNumber); err != nil {
 		return err

@@ -82,3 +82,16 @@ func (o *ProductionOrder) UpdateStatus(newStatus Status) error {
 	}
 	return errors.New("invalid status transition from " + string(o.status) + " to " + string(newStatus))
 }
+
+// ReconstitueProductionOrder reconstitutes a ProductionOrder from stored data.
+func ReconstitueProductionOrder(id, salesOrderID, operationNumber string, status Status, items []entities.ProductionItem, createdAt string, active bool) ProductionOrder {
+	return ProductionOrder{
+		ID:              id,
+		salesOrderID:    salesOrderID,
+		operationNumber: operationNumber,
+		status:          status,
+		items:           items,
+		createdAt:       createdAt,
+		active:          active,
+	}
+}

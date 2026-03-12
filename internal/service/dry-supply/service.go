@@ -22,8 +22,10 @@ type DrySupplyStorage interface {
 	GetDrySupplyByID(ctx context.Context, id string) (*dry_supply.DrySupply, error)
 	GetDrySupplyByCode(ctx context.Context, code string) (*dry_supply.DrySupply, error)
 	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
+	UpdateDrySupply(ctx context.Context, id, name string, reorderPoint int) error
 	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
 	SaveDrySupplyInventory(ctx context.Context, inv dry_supply_inventory.DrySupplyInventory) error
+	GetDailyLotCount(ctx context.Context) (int, error)
 }
 
 type Service struct {
@@ -117,4 +119,9 @@ func (s *Service) ConsumeStock(ctx context.Context, drySupplyID string, quantity
 // GetDrySupplyInventory returns the inventory record for a dry supply.
 func (s *Service) GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error) {
 	return s.storage.GetDrySupplyInventory(ctx, drySupplyID)
+}
+
+// GetDailyLotCount returns the count of lot numbers generated today.
+func (s *Service) GetDailyLotCount(ctx context.Context) (int, error) {
+	return s.storage.GetDailyLotCount(ctx)
 }

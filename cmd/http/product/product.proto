@@ -24,6 +24,12 @@ message CreateProductRequest {
   repeated BillOfDrySupply bods = 2;
 }
 
+message UpdateProductRequest {
+  string id   = 1;
+  string name = 2;
+  repeated BillOfDrySupply bods = 3;
+}
+
 message GetProductByIDRequest {
   string id = 1;
 }
@@ -35,6 +41,9 @@ message GetProductsResponse {
 service ProductService {
 
   rpc CreateProduct(CreateProductRequest)
+      returns (google.protobuf.Empty);
+
+  rpc UpdateProduct(UpdateProductRequest)
       returns (google.protobuf.Empty);
 
   rpc GetProductByID(GetProductByIDRequest)

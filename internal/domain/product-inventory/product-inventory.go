@@ -192,3 +192,13 @@ func (p *ProductInventory) ValidateMovements(productID string) error {
 	}
 	return nil
 }
+
+// ReconstitueProductInventory reconstitutes a ProductInventory from stored data.
+func ReconstitueProductInventory(id, productID, sku string, movements []valueObject.ProductMovement) ProductInventory {
+	return ProductInventory{
+		id:        id,
+		productID: productID,
+		sku:       sku,
+		movements: movements,
+	}
+}
