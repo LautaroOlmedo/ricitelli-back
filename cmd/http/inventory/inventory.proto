@@ -45,13 +45,22 @@ message GetProductTricapaRequest {
   string product_id = 1;
 }
 
+// AddUndressedStockRequest adds SV (sin vestir) bottles to a product's inventory.
+message AddUndressedStockRequest {
+  string product_id = 1;
+  uint64 quantity   = 2;
+  string reference  = 3; // e.g. "ingreso manual 2026-03-13"
+}
+
 service InventoryService {
   // GetInventoryReport returns a full tricapa snapshot for all products and dry supplies.
-  rpc GetInventoryReport(google.protobuf.Empty)      returns (InventoryReport);
+  rpc GetInventoryReport(google.protobuf.Empty)        returns (InventoryReport);
   // GetLowStockAlerts returns only dry supplies below the safety threshold.
-  rpc GetLowStockAlerts(google.protobuf.Empty)       returns (InventoryReport);
+  rpc GetLowStockAlerts(google.protobuf.Empty)         returns (InventoryReport);
   // ConvertSVtoPT dresses undressed (SV) wine into finished product (PT) with lot assignment.
-  rpc ConvertSVtoPT(ConvertSVtoPTRequest)            returns (google.protobuf.Empty);
+  rpc ConvertSVtoPT(ConvertSVtoPTRequest)              returns (google.protobuf.Empty);
   // GetProductTricapa returns the tricapa snapshot for a single product.
-  rpc GetProductTricapa(GetProductTricapaRequest)    returns (ProductTricapa);
+  rpc GetProductTricapa(GetProductTricapaRequest)      returns (ProductTricapa);
+  // AddUndressedStock ingests new SV (sin vestir) bottles into a product's inventory.
+  rpc AddUndressedStock(AddUndressedStockRequest)      returns (google.protobuf.Empty);
 }

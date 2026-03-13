@@ -177,6 +177,21 @@ func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity 
 	return s.productInventory.SaveProductInventory(*inv)
 }
 
+// AddUndressedStock ingests new SV (sin vestir) bottles into a product's inventory.
+func (s *Service) AddUndressedStock(ctx context.Context, productID string, quantity uint64, reference string) error {
+	inv, err := s.productInventory.GetProductInventory(productID)
+	if err != nil {
+		return err
+	}
+	if reference == "" {
+		reference = "manual"
+	}
+	if err := inv.AddUndressed(reference, quantity); err != nil {
+		return err
+	}
+	return s.productInventory.SaveProductInventory(*inv)
+}
+
 // GetLowStockAlerts returns only the dry supply items below the stock threshold.
 func (s *Service) GetLowStockAlerts(ctx context.Context) ([]DrySupplyAlert, error) {
 	report, err := s.GetInventoryReport(ctx)

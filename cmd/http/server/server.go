@@ -408,6 +408,16 @@ func (s *Server) ConvertSVtoPT(ctx context.Context, req *inventorypb.ConvertSVto
 	return &emptypb.Empty{}, nil
 }
 
+func (s *Server) AddUndressedStock(ctx context.Context, req *inventorypb.AddUndressedStockRequest) (*emptypb.Empty, error) {
+	if req.ProductId == "" || req.Quantity == 0 {
+		return nil, status.Error(codes.InvalidArgument, "product_id and quantity are required")
+	}
+	if err := s.InventoryService.AddUndressedStock(ctx, req.ProductId, req.Quantity, req.Reference); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+
 func (s *Server) GetProductTricapa(ctx context.Context, req *inventorypb.GetProductTricapaRequest) (*inventorypb.ProductTricapa, error) {
 	t, err := s.InventoryService.GetProductTricapa(ctx, req.ProductId)
 	if err != nil {

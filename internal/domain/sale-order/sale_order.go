@@ -110,7 +110,7 @@ func NewSaleOrder(params NewSaleOrderParams) (SaleOrder, error) {
 var validTransitions = map[Status][]Status{
 	StatusNew:             {StatusConfirmed, StatusReadyToDispatch, StatusCancelled},
 	StatusReadyToDispatch: {StatusInvoiced, StatusCancelled},
-	StatusConfirmed:       {StatusInvoiced, StatusCancelled},
+	StatusConfirmed:       {StatusReadyToDispatch, StatusInvoiced, StatusCancelled},
 	StatusInvoiced:        {StatusDispatched, StatusCancelled},
 }
 
