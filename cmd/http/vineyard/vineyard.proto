@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package vineyard;
+
+option go_package = "ricitelli-back/cmd/http/gen/vineyard;vineyardpb";
+
+import "google/protobuf/empty.proto";
+
+message LatLng {
+  double lat = 1;
+  double lng = 2;
+}
+
+message Plot {
+  string id      = 1;
+  string name    = 2;
+  string variety = 3;
+  double ha      = 4;
+  int32  age     = 5;
+  string status  = 6;
+  repeated LatLng polygon = 7;
+}
+
+message CreatePlotRequest {
+  string name    = 1;
+  string variety = 2;
+  double ha      = 3;
+  int32  age     = 4;
+  string status  = 5;
+  repeated LatLng polygon = 6;
+}
+
+message UpdatePlotRequest {
+  string id      = 1;
+  string name    = 2;
+  string variety = 3;
+  double ha      = 4;
+  int32  age     = 5;
+  string status  = 6;
+  repeated LatLng polygon = 7;
+}
+
+message GetPlotByIDRequest {
+  string id = 1;
+}
+
+message DeletePlotRequest {
+  string id = 1;
+}
+
+message GetPlotsResponse {
+  repeated Plot plots = 1;
+}
+
+service VineyardService {
+  rpc CreatePlot(CreatePlotRequest)           returns (Plot);
+  rpc UpdatePlot(UpdatePlotRequest)           returns (Plot);
+  rpc DeletePlot(DeletePlotRequest)           returns (google.protobuf.Empty);
+  rpc GetPlotByID(GetPlotByIDRequest)         returns (Plot);
+  rpc GetPlots(google.protobuf.Empty)         returns (GetPlotsResponse);
+}

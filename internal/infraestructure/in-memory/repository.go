@@ -15,6 +15,7 @@ import (
 	product_inventory "ricitelli-back/internal/domain/product-inventory"
 	production_order "ricitelli-back/internal/domain/production-order"
 	sale_order "ricitelli-back/internal/domain/sale-order"
+	vineyard_domain "ricitelli-back/internal/domain/vineyard"
 	"ricitelli-back/internal/entities"
 	valueObject "ricitelli-back/internal/value-object"
 )
@@ -27,6 +28,8 @@ type InMemoryRepository struct {
 	productInventoryMutex   sync.RWMutex
 	drySupplyMutex          sync.RWMutex
 	drySupplyInventoryMutex sync.RWMutex
+	vineyardMutex           sync.RWMutex
+	productImagesMutex      sync.RWMutex
 
 	Customers            []customer_domain.Customer
 	SaleOrders           []sale_order.SaleOrder
@@ -35,6 +38,8 @@ type InMemoryRepository struct {
 	ProductInventory     []product_inventory.ProductInventory
 	DrySupplies          []dry_supply.DrySupply
 	DrySupplyInventories []dry_supply_inventory.DrySupplyInventory
+	Plots                []vineyard_domain.Plot
+	ProductImages        map[string]string // product_id → image_url
 }
 
 func NewInMemoryRepository() *InMemoryRepository {
@@ -46,6 +51,8 @@ func NewInMemoryRepository() *InMemoryRepository {
 		ProductInventory:     make([]product_inventory.ProductInventory, 0),
 		DrySupplies:          make([]dry_supply.DrySupply, 0),
 		DrySupplyInventories: make([]dry_supply_inventory.DrySupplyInventory, 0),
+		Plots:                make([]vineyard_domain.Plot, 0),
+		ProductImages:        make(map[string]string),
 	}
 	dataPath := resolveDataPath()
 	if err := repo.SeedFromXLSX(dataPath); err != nil {
@@ -634,4 +641,77 @@ func (r *InMemoryRepository) GetDailyLotCount(ctx context.Context) (int, error) 
 		}
 	}
 	return count, nil
+}
+
+// ===== VINEYARD =====
+
+func (r *InMemoryRepository) CreatePlot(ctx context.Context, name, variety string, ha float64, age int32, status string, polygon []vineyard_domain.LatLng) (*vineyard_domain.Plot, error) {
+	r.vineyardMutex.Lock()
+	defer r.vineyardMutex.Unlock()
+	p, err := vineyard_domain.NewPlot(name, variety, ha, age, status, polygon)
+	if err != nil {
+		return nil, err
+	}
+	r.Plots = append(r.Plots, p)
+	return &r.Plots[len(r.Plots)-1], nil
+}
+
+func (r *InMemoryRepository) UpdatePlot(ctx context.Context, id, name, variety string, ha float64, age int32, status string, polygon []vineyard_domain.LatLng) (*vineyard_domain.Plot, error) {
+	r.vineyardMutex.Lock()
+	defer r.vineyardMutex.Unlock()
+	for i := range r.Plots {
+		if r.Plots[i].GetID() == id {
+			if err := r.Plots[i].Update(name, variety, ha, age, status, polygon); err != nil {
+				return nil, err
+			}
+			return &r.Plots[i], nil
+		}
+	}
+	return nil, vineyard_domain.ErrPlotNotFound
+}
+
+func (r *InMemoryRepository) DeletePlot(ctx context.Context, id string) error {
+	r.vineyardMutex.Lock()
+	defer r.vineyardMutex.Unlock()
+	for i := range r.Plots {
+		if r.Plots[i].GetID() == id {
+			r.Plots = append(r.Plots[:i], r.Plots[i+1:]...)
+			return nil
+		}
+	}
+	return vineyard_domain.ErrPlotNotFound
+}
+
+func (r *InMemoryRepository) GetPlotByID(ctx context.Context, id string) (*vineyard_domain.Plot, error) {
+	r.vineyardMutex.RLock()
+	defer r.vineyardMutex.RUnlock()
+	for i := range r.Plots {
+		if r.Plots[i].GetID() == id {
+			return &r.Plots[i], nil
+		}
+	}
+	return nil, vineyard_domain.ErrPlotNotFound
+}
+
+func (r *InMemoryRepository) GetPlots(ctx context.Context) ([]vineyard_domain.Plot, error) {
+	r.vineyardMutex.RLock()
+	defer r.vineyardMutex.RUnlock()
+	cp := make([]vineyard_domain.Plot, len(r.Plots))
+	copy(cp, r.Plots)
+	return cp, nil
+}
+
+// ===== PRODUCT IMAGES =====
+
+func (r *InMemoryRepository) SetProductImage(ctx context.Context, id, imageURL string) error {
+	r.productImagesMutex.Lock()
+	defer r.productImagesMutex.Unlock()
+	r.ProductImages[id] = imageURL
+	return nil
+}
+
+func (r *InMemoryRepository) GetProductImage(ctx context.Context, id string) (string, error) {
+	r.productImagesMutex.RLock()
+	defer r.productImagesMutex.RUnlock()
+	return r.ProductImages[id], nil
 }

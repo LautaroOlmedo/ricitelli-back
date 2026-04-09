@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -860,3 +861,23 @@ func (r *Repository) GetDailyLotCount(ctx context.Context) (int, error) {
 
 // ctx_bg is a helper to use context.Background() in methods with no context parameter.
 func ctx_bg() context.Context { return context.Background() }
+
+// ===== PRODUCT IMAGES (in-memory fallback until schema migration) =====
+
+var pgProductImages = struct {
+	mu   sync.RWMutex
+	data map[string]string
+}{data: make(map[string]string)}
+
+func (r *Repository) SetProductImage(ctx context.Context, id, imageURL string) error {
+	pgProductImages.mu.Lock()
+	defer pgProductImages.mu.Unlock()
+	pgProductImages.data[id] = imageURL
+	return nil
+}
+
+func (r *Repository) GetProductImage(ctx context.Context, id string) (string, error) {
+	pgProductImages.mu.RLock()
+	defer pgProductImages.mu.RUnlock()
+	return pgProductImages.data[id], nil
+}

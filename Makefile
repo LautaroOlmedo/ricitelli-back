@@ -12,6 +12,7 @@ INCLUDES = \
   -I cmd/http/dry-supply \
   -I cmd/http/inventory \
   -I cmd/http/customer \
+  -I cmd/http/vineyard \
   -I /opt/homebrew/include
 
 # With module=..., protoc strips the module prefix and outputs files at the
@@ -26,7 +27,8 @@ generate:
 	         cmd/http/gen/application-service \
 	         cmd/http/gen/dry_supply \
 	         cmd/http/gen/inventory \
-	         cmd/http/gen/customer
+	         cmd/http/gen/customer \
+	         cmd/http/gen/vineyard
 
 	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/product/product.proto
 	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/sale-order/sale_order.proto
@@ -35,6 +37,7 @@ generate:
 	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/dry-supply/dry_supply.proto
 	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/inventory/inventory.proto
 	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/customer/customer.proto
+	$(PROTOC) $(INCLUDES) $(GO_OUT) $(GO_GRPC_OUT) cmd/http/vineyard/vineyard.proto
 
 run:
 	go run cmd/main.go

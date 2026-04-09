@@ -11,6 +11,8 @@ type ProductStorage interface {
 	GetProductByID(ctx context.Context, id string) (*product.Product, error)
 	GetProducts(ctx context.Context) ([]product.Product, error)
 	UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error
+	SetProductImage(ctx context.Context, id, imageURL string) error
+	GetProductImage(ctx context.Context, id string) (string, error)
 }
 
 // ProductService is the concrete service type (renamed from Service to avoid collision with other packages).

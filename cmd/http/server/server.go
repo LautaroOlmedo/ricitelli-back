@@ -10,14 +10,17 @@ import (
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
+	vineyardpb "ricitelli-back/cmd/http/gen/vineyard"
 	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply_domain "ricitelli-back/internal/domain/dry-supply"
 	production_order_domain "ricitelli-back/internal/domain/production-order"
 	sale_order_domain "ricitelli-back/internal/domain/sale-order"
+	vineyard_domain "ricitelli-back/internal/domain/vineyard"
 	application_service "ricitelli-back/internal/service/application-service"
 	customer_svc "ricitelli-back/internal/service/customer"
 	dry_supply_svc "ricitelli-back/internal/service/dry-supply"
 	inventory_svc "ricitelli-back/internal/service/inventory"
+	vineyard_svc "ricitelli-back/internal/service/vineyard"
 	valueObject "ricitelli-back/internal/value-object"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -34,11 +37,13 @@ type Server struct {
 	drysupplypb.UnimplementedDrySupplyServiceServer
 	inventorypb.UnimplementedInventoryServiceServer
 	customerpb.UnimplementedCustomerServiceServer
+	vineyardpb.UnimplementedVineyardServiceServer
 
 	AppService       application_service.Service
 	DrySupplyService *dry_supply_svc.Service
 	InventoryService *inventory_svc.Service
 	CustomerService  *customer_svc.Service
+	VineyardService  *vineyard_svc.Service
 }
 
 func NewServer(
@@ -46,12 +51,14 @@ func NewServer(
 	drySupplyService *dry_supply_svc.Service,
 	inventoryService *inventory_svc.Service,
 	customerService *customer_svc.Service,
+	vineyardService *vineyard_svc.Service,
 ) *Server {
 	return &Server{
 		AppService:       appService,
 		DrySupplyService: drySupplyService,
 		InventoryService: inventoryService,
 		CustomerService:  customerService,
+		VineyardService:  vineyardService,
 	}
 }
 
@@ -226,7 +233,8 @@ func (s *Server) GetProductByID(ctx context.Context, req *productpb.GetProductBy
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "product not found")
 	}
-	return toProtoProduct(p), nil
+	imageURL, _ := s.AppService.ProductService.GetProductImage(ctx, req.Id)
+	return toProtoProductWithImage(p, imageURL), nil
 }
 
 func (s *Server) GetProducts(ctx context.Context, _ *emptypb.Empty) (*productpb.GetProductsResponse, error) {
@@ -236,7 +244,8 @@ func (s *Server) GetProducts(ctx context.Context, _ *emptypb.Empty) (*productpb.
 	}
 	protoProducts := make([]*productpb.Product, 0, len(products))
 	for i := range products {
-		protoProducts = append(protoProducts, toProtoProduct(&products[i]))
+		imageURL, _ := s.AppService.ProductService.GetProductImage(ctx, products[i].GetID())
+		protoProducts = append(protoProducts, toProtoProductWithImage(&products[i], imageURL))
 	}
 	return &productpb.GetProductsResponse{Products: protoProducts}, nil
 }
@@ -271,6 +280,16 @@ func toProtoProduct(p interface {
 		})
 	}
 	return &productpb.Product{Id: p.GetID(), Name: p.GetName(), Bods: bods}
+}
+
+func toProtoProductWithImage(p interface {
+	GetID() string
+	GetName() string
+	GetBODS() []valueObject.BillOfDrySupply
+}, imageURL string) *productpb.Product {
+	proto := toProtoProduct(p)
+	proto.ImageUrl = imageURL
+	return proto
 }
 
 // ===== DrySupplyService =====
@@ -629,3 +648,99 @@ func (s *Server) GetProductionOrdersBySaleOrder(ctx context.Context, req *produc
 	}
 	return &productionorderpb.GetProductionOrdersResponse{ProductionOrders: protoOrders}, nil
 }
+
+// ===== VineyardService =====
+
+func (s *Server) CreatePlot(ctx context.Context, req *vineyardpb.CreatePlotRequest) (*vineyardpb.Plot, error) {
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	polygon := protoToLatLng(req.Polygon)
+	plot, err := s.VineyardService.CreatePlot(ctx, req.Name, req.Variety, req.Ha, req.Age, req.Status, polygon)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return toProtoPlot(plot), nil
+}
+
+func (s *Server) UpdatePlot(ctx context.Context, req *vineyardpb.UpdatePlotRequest) (*vineyardpb.Plot, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	polygon := protoToLatLng(req.Polygon)
+	plot, err := s.VineyardService.UpdatePlot(ctx, req.Id, req.Name, req.Variety, req.Ha, req.Age, req.Status, polygon)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return toProtoPlot(plot), nil
+}
+
+func (s *Server) DeletePlot(ctx context.Context, req *vineyardpb.DeletePlotRequest) (*emptypb.Empty, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if err := s.VineyardService.DeletePlot(ctx, req.Id); err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) GetPlotByID(ctx context.Context, req *vineyardpb.GetPlotByIDRequest) (*vineyardpb.Plot, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	plot, err := s.VineyardService.GetPlotByID(ctx, req.Id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return toProtoPlot(plot), nil
+}
+
+func (s *Server) GetPlots(ctx context.Context, _ *emptypb.Empty) (*vineyardpb.GetPlotsResponse, error) {
+	plots, err := s.VineyardService.GetPlots(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	proto := make([]*vineyardpb.Plot, 0, len(plots))
+	for i := range plots {
+		proto = append(proto, toProtoPlot(&plots[i]))
+	}
+	return &vineyardpb.GetPlotsResponse{Plots: proto}, nil
+}
+
+func toProtoPlot(p *vineyard_domain.Plot) *vineyardpb.Plot {
+	latlngs := make([]*vineyardpb.LatLng, 0, len(p.GetPolygon()))
+	for _, ll := range p.GetPolygon() {
+		latlngs = append(latlngs, &vineyardpb.LatLng{Lat: ll.Lat, Lng: ll.Lng})
+	}
+	return &vineyardpb.Plot{
+		Id:      p.GetID(),
+		Name:    p.GetName(),
+		Variety: p.GetVariety(),
+		Ha:      p.GetHa(),
+		Age:     p.GetAge(),
+		Status:  p.GetStatus(),
+		Polygon: latlngs,
+	}
+}
+
+func protoToLatLng(in []*vineyardpb.LatLng) []vineyard_domain.LatLng {
+	out := make([]vineyard_domain.LatLng, 0, len(in))
+	for _, ll := range in {
+		out = append(out, vineyard_domain.LatLng{Lat: ll.Lat, Lng: ll.Lng})
+	}
+	return out
+}
+
+// ===== ProductService — image =====
+
+func (s *Server) SetProductImage(ctx context.Context, req *productpb.SetProductImageRequest) (*emptypb.Empty, error) {
+	if req.Id == "" || req.ImageUrl == "" {
+		return nil, status.Error(codes.InvalidArgument, "id and image_url are required")
+	}
+	if err := s.AppService.ProductService.SetProductImage(ctx, req.Id, req.ImageUrl); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+

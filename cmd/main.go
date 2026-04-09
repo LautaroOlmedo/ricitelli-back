@@ -12,6 +12,7 @@ import (
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
+	vineyardpb "ricitelli-back/cmd/http/gen/vineyard"
 	"ricitelli-back/cmd/http/server"
 	"ricitelli-back/config"
 	"ricitelli-back/internal/auth"
@@ -25,6 +26,7 @@ import (
 	product_inventory "ricitelli-back/internal/service/product-inventory"
 	production_order "ricitelli-back/internal/service/production-order"
 	sale_order "ricitelli-back/internal/service/sale-order"
+	vineyard_svc "ricitelli-back/internal/service/vineyard"
 
 	"google.golang.org/grpc"
 )
@@ -39,6 +41,8 @@ func main() {
 			log.Fatalf("failed to connect to database: %v", err)
 		}
 		log.Println("PostgreSQL connected and migrations applied")
+		// vineyard uses in-memory until postgres storage is implemented
+		vineyardRepo := inmemory.NewInMemoryRepository()
 		boot(cfg,
 			product.NewProductService(pgRepo),
 			product_inventory.NewProductInventoryService(pgRepo),
@@ -46,6 +50,7 @@ func main() {
 			sale_order.NewSaleOrderService(pgRepo),
 			dry_supply_svc.NewDrySupplyService(pgRepo),
 			customer_svc.NewCustomerService(pgRepo, pgRepo),
+			vineyard_svc.NewVineyardService(vineyardRepo),
 		)
 		return
 	}
@@ -59,6 +64,7 @@ func main() {
 		sale_order.NewSaleOrderService(r),
 		dry_supply_svc.NewDrySupplyService(r),
 		customer_svc.NewCustomerService(r, r),
+		vineyard_svc.NewVineyardService(r),
 	)
 }
 
@@ -70,6 +76,7 @@ func boot(
 	saleOrderSvc *sale_order.Service,
 	drySupplySvc *dry_supply_svc.Service,
 	customerSvc *customer_svc.Service,
+	vineyardSvc *vineyard_svc.Service,
 ) {
 	appSvc := application_service.NewApplicationService(
 		customerSvc, saleOrderSvc, productionOrderSvc,
@@ -81,7 +88,7 @@ func boot(
 	interceptor := auth.NewUnaryInterceptor(cfg.JWTSecret)
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptor))
 
-	svc := server.NewServer(appSvc, drySupplySvc, inventorySvc, customerSvc)
+	svc := server.NewServer(appSvc, drySupplySvc, inventorySvc, customerSvc, vineyardSvc)
 	authSvc := server.NewAuthServer(cfg.JWTSecret, cfg.AdminUser, cfg.AdminPass)
 
 	productpb.RegisterProductServiceServer(grpcServer, svc)
@@ -91,6 +98,7 @@ func boot(
 	drysupplypb.RegisterDrySupplyServiceServer(grpcServer, svc)
 	inventorypb.RegisterInventoryServiceServer(grpcServer, svc)
 	customerpb.RegisterCustomerServiceServer(grpcServer, svc)
+	vineyardpb.RegisterVineyardServiceServer(grpcServer, svc)
 	authpb.RegisterAuthServiceServer(grpcServer, authSvc)
 
 	lis, err := net.Listen("tcp", cfg.Port)

@@ -47,6 +47,8 @@ type ProductService interface {
 	GetProductByID(ctx context.Context, id string) (*product.Product, error)
 	GetProducts(ctx context.Context) ([]product.Product, error)
 	UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error
+	SetProductImage(ctx context.Context, id, imageURL string) error
+	GetProductImage(ctx context.Context, id string) (string, error)
 }
 
 type ProductInventoryService interface {

@@ -83,6 +83,49 @@ func (mr *MockProductServiceMockRecorder) GetProducts(ctx interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProducts", reflect.TypeOf((*MockProductService)(nil).GetProducts), ctx)
 }
 
+// UpdateProduct mocks base method.
+func (m *MockProductService) UpdateProduct(ctx context.Context, id, name string, bods []value_object.BillOfDrySupply) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateProduct", ctx, id, name, bods)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateProduct indicates an expected call of UpdateProduct.
+func (mr *MockProductServiceMockRecorder) UpdateProduct(ctx, id, name, bods interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateProduct", reflect.TypeOf((*MockProductService)(nil).UpdateProduct), ctx, id, name, bods)
+}
+
+// SetProductImage mocks base method.
+func (m *MockProductService) SetProductImage(ctx context.Context, id, imageURL string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetProductImage", ctx, id, imageURL)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetProductImage indicates an expected call of SetProductImage.
+func (mr *MockProductServiceMockRecorder) SetProductImage(ctx, id, imageURL interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProductImage", reflect.TypeOf((*MockProductService)(nil).SetProductImage), ctx, id, imageURL)
+}
+
+// GetProductImage mocks base method.
+func (m *MockProductService) GetProductImage(ctx context.Context, id string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductImage", ctx, id)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetProductImage indicates an expected call of GetProductImage.
+func (mr *MockProductServiceMockRecorder) GetProductImage(ctx, id interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductImage", reflect.TypeOf((*MockProductService)(nil).GetProductImage), ctx, id)
+}
+
 // MockSaleOrderService is a mock of SaleOrderService interface.
 type MockSaleOrderService struct {
 	ctrl     *gomock.Controller

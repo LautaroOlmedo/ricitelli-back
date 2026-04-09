@@ -8,14 +8,15 @@ import "google/protobuf/empty.proto";
 
 // Represents a manufacturable product with its bill of dry supplies (BODS).
 message Product {
-  string id = 1;
-  string name = 2;
+  string id        = 1;
+  string name      = 2;
   repeated BillOfDrySupply bods = 3;
+  string image_url = 4;
 }
 
 // Represents the quantity of a dry supply required per unit of product.
 message BillOfDrySupply {
-  string dry_supply_id = 1;
+  string dry_supply_id    = 1;
   uint64 quantity_per_unit = 2;
 }
 
@@ -28,6 +29,11 @@ message UpdateProductRequest {
   string id   = 1;
   string name = 2;
   repeated BillOfDrySupply bods = 3;
+}
+
+message SetProductImageRequest {
+  string id        = 1;
+  string image_url = 2;
 }
 
 message GetProductByIDRequest {
@@ -44,6 +50,9 @@ service ProductService {
       returns (google.protobuf.Empty);
 
   rpc UpdateProduct(UpdateProductRequest)
+      returns (google.protobuf.Empty);
+
+  rpc SetProductImage(SetProductImageRequest)
       returns (google.protobuf.Empty);
 
   rpc GetProductByID(GetProductByIDRequest)
