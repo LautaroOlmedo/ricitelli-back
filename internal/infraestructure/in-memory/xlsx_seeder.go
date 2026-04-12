@@ -46,24 +46,36 @@ func resolveDataPath() string {
 	return "data" // fallback; will produce a clear error message
 }
 
+// bomProductKeys stores product matching data during seeding.
+// Populated by loadVestidoYSV, consumed by linkProductsToDrySupplies.
+var bomProductKeys map[string][2]string
+
 // SeedFromXLSX is the main entry point. basePath is the directory that
 // contains the xlsx files (e.g. "data").
 func (r *InMemoryRepository) SeedFromXLSX(basePath string) error {
-	steps := []struct {
-		name string
-		fn   func(string) error
-		file string
-	}{
-		{"INSUMOS SECOS", r.loadInsumosSecos, "INSUMOS SECOS.xlsx"},
-		{"VESTIDO Y SV", r.loadVestidoYSV, "VESTIDO Y SV.xlsx"},
-		{"INSUMOS COMPROMETIDOS", r.loadInsumosComprometidos, "Insumos Comprometidos.xlsx"},
-		{"PENDIENTES", r.loadPendientes, "PENDIENTES.xlsx"},
-		{"REMITIDOS", r.loadRemitidos, "REMITIDOS.xlsx"},
+	bomProductKeys = make(map[string][2]string)
+
+	// Phase 1: Load catalogs (dry supplies and products)
+	if err := r.loadInsumosSecos(basePath + "/INSUMOS SECOS.xlsx"); err != nil {
+		return fmt.Errorf("INSUMOS SECOS: %w", err)
 	}
-	for _, s := range steps {
-		if err := s.fn(basePath + "/" + s.file); err != nil {
-			return fmt.Errorf("%s: %w", s.name, err)
-		}
+	if err := r.loadVestidoYSV(basePath + "/VESTIDO Y SV.xlsx"); err != nil {
+		return fmt.Errorf("VESTIDO Y SV: %w", err)
+	}
+
+	// Phase 2: Infer BOM from product/supply name matching
+	r.linkProductsToDrySupplies()
+	bomProductKeys = nil // free memory
+
+	// Phase 3: Load transactional data
+	if err := r.loadInsumosComprometidos(basePath + "/Insumos Comprometidos.xlsx"); err != nil {
+		return fmt.Errorf("INSUMOS COMPROMETIDOS: %w", err)
+	}
+	if err := r.loadPendientes(basePath + "/PENDIENTES.xlsx"); err != nil {
+		return fmt.Errorf("PENDIENTES: %w", err)
+	}
+	if err := r.loadRemitidos(basePath + "/REMITIDOS.xlsx"); err != nil {
+		return fmt.Errorf("REMITIDOS: %w", err)
 	}
 	return nil
 }
@@ -119,6 +131,124 @@ func cleanProductName(desc string) string {
 		s = strings.TrimSuffix(s, " SV")
 	}
 	return strings.TrimSpace(s)
+}
+
+// =============================================================================
+// BOM inference: link products to dry supplies by name matching
+// =============================================================================
+//
+// The xlsx files do not contain explicit product-to-supply mappings.
+// This function infers the BOM by matching product line+varietal tokens
+// against dry supply names. Each matching supply gets QuantityPerUnit = 1.
+//
+// See docs/bom-inference-strategy.md for rationale and future improvements.
+
+func (r *InMemoryRepository) linkProductsToDrySupplies() {
+	if len(bomProductKeys) == 0 {
+		return
+	}
+
+	// Pre-normalize all dry supply names once
+	type supplyEntry struct {
+		id         string
+		normalized string
+	}
+	supplies := make([]supplyEntry, 0, len(r.DrySupplies))
+	for _, ds := range r.DrySupplies {
+		supplies = append(supplies, supplyEntry{
+			id:         ds.GetID(),
+			normalized: normalizeForMatch(ds.GetName()),
+		})
+	}
+
+	// Count how many products share each ord1 (product line).
+	// Single-varietal lines match on ord1 tokens only (no varietal needed).
+	ord1Count := make(map[string]int)
+	for _, keys := range bomProductKeys {
+		ord1Count[keys[0]]++
+	}
+
+	linked := 0
+	for i, p := range r.Products {
+		keys, ok := bomProductKeys[p.GetID()]
+		if !ok {
+			continue
+		}
+		ord1, ord2 := keys[0], keys[1]
+
+		// For single-varietal product lines, match on ord1 only.
+		// For multi-varietal lines, require ord1 + ord2 tokens.
+		var tokens []string
+		if ord1Count[ord1] == 1 {
+			tokens = bomFilterTokens(ord1)
+		} else {
+			tokens = bomFilterTokens(ord1 + " " + ord2)
+		}
+		if len(tokens) == 0 {
+			continue
+		}
+
+		// Find all supplies whose name contains ALL product tokens
+		var bods []valueobject.BillOfDrySupply
+		for _, se := range supplies {
+			if allTokensPresent(se.normalized, tokens) {
+				bods = append(bods, valueobject.BillOfDrySupply{
+					DrySupplyID:     se.id,
+					QuantityPerUnit: 1,
+				})
+			}
+		}
+
+		if len(bods) > 0 {
+			r.Products[i] = product.ReconstitueProduct(
+				p.GetID(), p.GetName(), bods, true,
+			)
+			linked++
+		}
+	}
+	fmt.Printf("[BOM inference] linked %d/%d products to dry supplies\n", linked, len(r.Products))
+}
+
+// bomFilterTokens normalizes a string and returns significant tokens,
+// filtering out noise words and very short tokens.
+func bomFilterTokens(s string) []string {
+	raw := normalizeForMatch(s)
+	words := strings.Fields(raw)
+
+	noise := map[string]bool{
+		"de": true, "la": true, "del": true, "y": true,
+		"the": true, "and": true, "from": true, "is": true, "not": true,
+	}
+	var tokens []string
+	for _, w := range words {
+		if len(w) < 2 || noise[w] {
+			continue
+		}
+		tokens = append(tokens, w)
+	}
+	return tokens
+}
+
+// allTokensPresent returns true if every token appears in s.
+func allTokensPresent(s string, tokens []string) bool {
+	for _, t := range tokens {
+		if !strings.Contains(s, t) {
+			return false
+		}
+	}
+	return true
+}
+
+// normalizeForMatch lowercases, strips punctuation, and collapses whitespace.
+func normalizeForMatch(s string) string {
+	s = strings.ToLower(s)
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ' {
+			return r
+		}
+		return -1
+	}, s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // mapDrySupplyCategory maps the ERP Ord-2 string to the domain Category.
@@ -377,6 +507,9 @@ func (r *InMemoryRepository) loadVestidoYSV(path string) error {
 			productByKey[productKey] = productID
 			p := product.ReconstitueProduct(productID, desc, nil, true)
 			r.Products = append(r.Products, p)
+			if bomProductKeys != nil {
+				bomProductKeys[productID] = [2]string{ord1, ord2}
+			}
 		}
 
 		// --- SKU: slugified ord1_ord2_vintage_format ---
