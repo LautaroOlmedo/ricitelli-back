@@ -121,8 +121,8 @@ func (p *ProductInventory) AvailableUndressed() int64 {
 }
 
 // AddUndressed records new undressed (SV) wine arriving from production.
-func (p *ProductInventory) AddUndressed(productionOrderID string, quantity uint64) error {
-	m, err := valueObject.NewProductMovement(productionOrderID, valueObject.Undressed, valueObject.ProductStageIn, quantity)
+func (p *ProductInventory) AddUndressed(productionOrderID string, quantity uint64, userID string) error {
+	m, err := valueObject.NewProductMovement(productionOrderID, valueObject.Undressed, valueObject.ProductStageIn, quantity, userID)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (p *ProductInventory) AddUndressed(productionOrderID string, quantity uint6
 
 // ConvertSVtoPT converts undressed (SV) stock to dressed (PT) with a lot number.
 // The lot number format is e.g. "L-081124-38-11".
-func (p *ProductInventory) ConvertSVtoPT(referenceID string, quantity uint64, lotNumber string) error {
+func (p *ProductInventory) ConvertSVtoPT(referenceID string, quantity uint64, lotNumber string, userID string) error {
 	if quantity == 0 {
 		return errors.New("quantity must be greater than 0")
 	}
@@ -143,12 +143,12 @@ func (p *ProductInventory) ConvertSVtoPT(referenceID string, quantity uint64, lo
 		return fmt.Errorf("insufficient undressed stock: need %d, have %d", quantity, p.PhysicalUndressed())
 	}
 	// Remove from SV
-	outM, err := valueObject.NewProductMovementWithLot(referenceID, valueObject.Undressed, valueObject.ProductStageOut, quantity, lotNumber)
+	outM, err := valueObject.NewProductMovementWithLot(referenceID, valueObject.Undressed, valueObject.ProductStageOut, quantity, lotNumber, userID)
 	if err != nil {
 		return err
 	}
 	// Add to PT
-	inM, err := valueObject.NewProductMovementWithLot(referenceID, valueObject.Dressed, valueObject.ProductStageIn, quantity, lotNumber)
+	inM, err := valueObject.NewProductMovementWithLot(referenceID, valueObject.Dressed, valueObject.ProductStageIn, quantity, lotNumber, userID)
 	if err != nil {
 		return err
 	}
@@ -157,8 +157,8 @@ func (p *ProductInventory) ConvertSVtoPT(referenceID string, quantity uint64, lo
 }
 
 // Reserve commits dressed stock for a sale order.
-func (p *ProductInventory) Reserve(referenceID string, quantity uint64) error {
-	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservedForSale, quantity)
+func (p *ProductInventory) Reserve(referenceID string, quantity uint64, userID string) error {
+	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservedForSale, quantity, userID)
 	if err != nil {
 		return err
 	}
@@ -167,8 +167,8 @@ func (p *ProductInventory) Reserve(referenceID string, quantity uint64) error {
 }
 
 // ReleaseReservation cancels a previous dressed stock reservation (e.g., sale order cancelled).
-func (p *ProductInventory) ReleaseReservation(referenceID string, quantity uint64) error {
-	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservationReleased, quantity)
+func (p *ProductInventory) ReleaseReservation(referenceID string, quantity uint64, userID string) error {
+	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductReservationReleased, quantity, userID)
 	if err != nil {
 		return err
 	}
@@ -177,8 +177,8 @@ func (p *ProductInventory) ReleaseReservation(referenceID string, quantity uint6
 }
 
 // Dispatch records actual shipment, reducing physical and committed dressed stock.
-func (p *ProductInventory) Dispatch(referenceID string, quantity uint64) error {
-	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductDispatched, quantity)
+func (p *ProductInventory) Dispatch(referenceID string, quantity uint64, userID string) error {
+	m, err := valueObject.NewProductMovement(referenceID, valueObject.Dressed, valueObject.ProductDispatched, quantity, userID)
 	if err != nil {
 		return err
 	}

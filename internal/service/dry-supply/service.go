@@ -3,6 +3,7 @@ package dry_supply
 import (
 	"context"
 
+	"ricitelli-back/internal/auth"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
 	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
 )
@@ -26,6 +27,13 @@ type DrySupplyStorage interface {
 	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
 	SaveDrySupplyInventory(ctx context.Context, inv dry_supply_inventory.DrySupplyInventory) error
 	GetDailyLotCount(ctx context.Context) (int, error)
+}
+
+func userIDFromContext(ctx context.Context) string {
+	if claims, ok := auth.ClaimsFromContext(ctx); ok {
+		return claims.UserID
+	}
+	return "system"
 }
 
 type Service struct {
@@ -54,7 +62,7 @@ func (s *Service) AddStock(ctx context.Context, drySupplyID string, quantity uin
 	if err != nil {
 		return err
 	}
-	if err := inv.AddStock(quantity, reference); err != nil {
+	if err := inv.AddStock(quantity, reference, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.storage.SaveDrySupplyInventory(ctx, *inv)
@@ -86,7 +94,7 @@ func (s *Service) CommitStock(ctx context.Context, drySupplyID string, quantity 
 	if err != nil {
 		return err
 	}
-	if err := inv.Commit(quantity, productionOrderID); err != nil {
+	if err := inv.Commit(quantity, productionOrderID, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.storage.SaveDrySupplyInventory(ctx, *inv)
@@ -98,7 +106,7 @@ func (s *Service) ReleaseStock(ctx context.Context, drySupplyID string, quantity
 	if err != nil {
 		return err
 	}
-	if err := inv.Release(quantity, reference); err != nil {
+	if err := inv.Release(quantity, reference, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.storage.SaveDrySupplyInventory(ctx, *inv)
@@ -110,7 +118,7 @@ func (s *Service) ConsumeStock(ctx context.Context, drySupplyID string, quantity
 	if err != nil {
 		return err
 	}
-	if err := inv.Consume(quantity, reference); err != nil {
+	if err := inv.Consume(quantity, reference, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.storage.SaveDrySupplyInventory(ctx, *inv)

@@ -3,6 +3,7 @@ package application_service
 import (
 	"context"
 
+	"ricitelli-back/internal/auth"
 	customer_domain "ricitelli-back/internal/domain/customer"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
 	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
@@ -14,6 +15,13 @@ import (
 	customer_svc "ricitelli-back/internal/service/customer"
 	valueObject "ricitelli-back/internal/value-object"
 )
+
+func userIDFromCtx(ctx context.Context) string {
+	if claims, ok := auth.ClaimsFromContext(ctx); ok {
+		return claims.UserID
+	}
+	return "system"
+}
 
 type CustomerService interface {
 	CreateCustomer(ctx context.Context, params customer_domain.NewCustomerParams) (customer_domain.Customer, error)

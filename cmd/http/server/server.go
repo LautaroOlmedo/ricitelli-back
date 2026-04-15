@@ -453,6 +453,42 @@ func (s *Server) GetProductTricapa(ctx context.Context, req *inventorypb.GetProd
 	}, nil
 }
 
+func (s *Server) GetMovements(ctx context.Context, req *inventorypb.MovementFilter) (*inventorypb.GetMovementsResponse, error) {
+	filter := inventory_svc.MovementFilter{
+		FromDate:     req.FromDate,
+		ToDate:       req.ToDate,
+		UserID:       req.UserId,
+		MovementType: req.MovementType,
+		ProductID:    req.ProductId,
+		DrySupplyID:  req.DrySupplyId,
+		Category:     req.Category,
+		Page:         int(req.Page),
+		PageSize:     int(req.PageSize),
+	}
+	result, err := s.InventoryService.GetMovements(ctx, filter)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	entries := make([]*inventorypb.MovementEntry, len(result.Movements))
+	for i, m := range result.Movements {
+		entries[i] = &inventorypb.MovementEntry{
+			MovementType: m.MovementType,
+			Quantity:     int64(m.Quantity),
+			Reference:    m.Reference,
+			Stage:        m.Stage,
+			LotNumber:    m.LotNumber,
+			UserId:       m.UserID,
+			CreatedAt:    m.CreatedAt,
+			ItemName:     m.ItemName,
+			Category:     m.Category,
+		}
+	}
+	return &inventorypb.GetMovementsResponse{
+		Movements:  entries,
+		TotalCount: int32(result.TotalCount),
+	}, nil
+}
+
 func toProtoInventoryReport(r *inventory_svc.InventoryReport) *inventorypb.InventoryReport {
 	protoProducts := make([]*inventorypb.ProductTricapa, 0, len(r.Products))
 	for _, p := range r.Products {

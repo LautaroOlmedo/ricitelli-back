@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 
+	"ricitelli-back/internal/auth"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
 	dry_supply_inventory "ricitelli-back/internal/domain/dry-supply-inventory"
 	product_inventory "ricitelli-back/internal/domain/product-inventory"
@@ -53,23 +54,69 @@ type DrySupplyStorage interface {
 	GetDailyLotCount(ctx context.Context) (int, error)
 }
 
+type MovementStorage interface {
+	QueryMovements(ctx context.Context, filter MovementFilter) (*MovementsResult, error)
+}
+
+// MovementFilter holds query parameters for the audit trail.
+type MovementFilter struct {
+	FromDate     string // RFC3339
+	ToDate       string // RFC3339
+	UserID       string
+	MovementType string
+	ProductID    string
+	DrySupplyID  string
+	Category     string // "PRODUCT", "DRY_SUPPLY", or "" for all
+	Page         int
+	PageSize     int
+}
+
+// MovementEntry is a denormalized audit row returned by QueryMovements.
+type MovementEntry struct {
+	MovementType string
+	Quantity     uint64
+	Reference    string
+	Stage        string
+	LotNumber    string
+	UserID       string
+	CreatedAt    string
+	ItemName     string
+	Category     string // "PRODUCT" or "DRY_SUPPLY"
+}
+
+// MovementsResult wraps the paginated query result.
+type MovementsResult struct {
+	Movements  []MovementEntry
+	TotalCount int
+}
+
 const defaultLowStockThreshold = 500
+
+func userIDFromContext(ctx context.Context) string {
+	if claims, ok := auth.ClaimsFromContext(ctx); ok {
+		return claims.UserID
+	}
+	return "system"
+}
 
 type Service struct {
 	productStorage   ProductStorage
 	productInventory ProductInventoryStorage
 	drySupplyStorage DrySupplyStorage
+	movementStorage  MovementStorage
 }
 
 func NewInventoryService(
 	productStorage ProductStorage,
 	productInventory ProductInventoryStorage,
 	drySupplyStorage DrySupplyStorage,
+	movementStorage MovementStorage,
 ) *Service {
 	return &Service{
 		productStorage:   productStorage,
 		productInventory: productInventory,
 		drySupplyStorage: drySupplyStorage,
+		movementStorage:  movementStorage,
 	}
 }
 
@@ -171,7 +218,7 @@ func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity 
 		dailyCount, _ := s.drySupplyStorage.GetDailyLotCount(ctx)
 		lotNumber = GenerateLotNumber(productID, dailyCount+1)
 	}
-	if err := inv.ConvertSVtoPT("manual-conversion", quantity, lotNumber); err != nil {
+	if err := inv.ConvertSVtoPT("manual-conversion", quantity, lotNumber, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.productInventory.SaveProductInventory(*inv)
@@ -186,7 +233,7 @@ func (s *Service) AddUndressedStock(ctx context.Context, productID string, quant
 	if reference == "" {
 		reference = "manual"
 	}
-	if err := inv.AddUndressed(reference, quantity); err != nil {
+	if err := inv.AddUndressed(reference, quantity, userIDFromContext(ctx)); err != nil {
 		return err
 	}
 	return s.productInventory.SaveProductInventory(*inv)
@@ -205,4 +252,15 @@ func (s *Service) GetLowStockAlerts(ctx context.Context) ([]DrySupplyAlert, erro
 		}
 	}
 	return alerts, nil
+}
+
+// GetMovements queries the audit trail with optional filters.
+func (s *Service) GetMovements(ctx context.Context, filter MovementFilter) (*MovementsResult, error) {
+	if filter.PageSize <= 0 {
+		filter.PageSize = 50
+	}
+	if filter.Page <= 0 {
+		filter.Page = 1
+	}
+	return s.movementStorage.QueryMovements(ctx, filter)
 }

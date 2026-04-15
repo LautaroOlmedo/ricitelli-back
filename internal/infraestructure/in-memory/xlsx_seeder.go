@@ -436,7 +436,7 @@ func (r *InMemoryRepository) loadInsumosSecos(path string) error {
 
 		inv, _ := drysupplyinventory.NewDrySupplyInventory(id)
 		if qty, qerr := parseQty(cell(row, 6)); qerr == nil && qty > 0 {
-			_ = inv.AddStock(qty, "xlsx-initial-stock")
+			_ = inv.AddStock(qty, "xlsx-initial-stock", "system")
 		}
 		r.DrySupplyInventories = append(r.DrySupplyInventories, inv)
 	}
@@ -528,10 +528,10 @@ func (r *InMemoryRepository) loadVestidoYSV(path string) error {
 		}
 
 		// Model as: first produce undressed, then dress with lot number.
-		if err := r.ProductInventory[invIdx].AddUndressed("xlsx-initial-production", qty); err != nil {
+		if err := r.ProductInventory[invIdx].AddUndressed("xlsx-initial-production", qty, "system"); err != nil {
 			continue
 		}
-		_ = r.ProductInventory[invIdx].ConvertSVtoPT("xlsx-initial-dressing", qty, lotNumber)
+		_ = r.ProductInventory[invIdx].ConvertSVtoPT("xlsx-initial-dressing", qty, lotNumber, "system")
 	}
 	return nil
 }
@@ -598,7 +598,7 @@ func (r *InMemoryRepository) loadInsumosComprometidos(path string) error {
 		ref := "OP-" + comprobante
 		// Errors (e.g. insufficient stock) are silently skipped to keep seeding
 		// idempotent even if xlsx snapshots are from different dates.
-		_ = r.DrySupplyInventories[invIdx].Commit(qty, ref)
+		_ = r.DrySupplyInventories[invIdx].Commit(qty, ref, "system")
 	}
 	return nil
 }

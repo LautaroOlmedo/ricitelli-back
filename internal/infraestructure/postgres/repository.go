@@ -19,6 +19,7 @@ import (
 	production_order_domain "ricitelli-back/internal/domain/production-order"
 	sale_order_domain "ricitelli-back/internal/domain/sale-order"
 	"ricitelli-back/internal/entities"
+	inventory_svc "ricitelli-back/internal/service/inventory"
 	valueObject "ricitelli-back/internal/value-object"
 )
 
@@ -668,9 +669,9 @@ func (r *Repository) SaveProductInventory(inv product_inventory_domain.ProductIn
 	for i := existing; i < len(movements); i++ {
 		m := movements[i]
 		_, err = r.pool.Exec(ctx,
-			`INSERT INTO product_inventory_movements (product_inventory_id, movement_type, quantity, stage, reference, lot_number, created_at)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-			inv.GetID(), string(m.MovementType), m.Quantity, string(m.Stage), m.Reference, m.LotNumber, m.CreatedAt,
+			`INSERT INTO product_inventory_movements (product_inventory_id, movement_type, quantity, stage, reference, lot_number, user_id, created_at)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+			inv.GetID(), string(m.MovementType), m.Quantity, string(m.Stage), m.Reference, m.LotNumber, m.UserID, m.CreatedAt,
 		)
 		if err != nil {
 			return err
@@ -681,7 +682,7 @@ func (r *Repository) SaveProductInventory(inv product_inventory_domain.ProductIn
 
 func (r *Repository) loadProductMovements(ctx context.Context, inventoryID string) ([]valueObject.ProductMovement, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT movement_type, quantity, stage, reference, COALESCE(lot_number,''), created_at
+		`SELECT movement_type, quantity, stage, reference, COALESCE(lot_number,''), COALESCE(user_id,''), created_at
 		 FROM product_inventory_movements WHERE product_inventory_id = $1 ORDER BY created_at`, inventoryID)
 	if err != nil {
 		return nil, err
@@ -689,9 +690,9 @@ func (r *Repository) loadProductMovements(ctx context.Context, inventoryID strin
 	defer rows.Close()
 	var movements []valueObject.ProductMovement
 	for rows.Next() {
-		var movType, stage, ref, lot, createdAt string
+		var movType, stage, ref, lot, userID, createdAt string
 		var qty uint64
-		if err := rows.Scan(&movType, &qty, &stage, &ref, &lot, &createdAt); err != nil {
+		if err := rows.Scan(&movType, &qty, &stage, &ref, &lot, &userID, &createdAt); err != nil {
 			return nil, err
 		}
 		movements = append(movements, valueObject.ProductMovement{
@@ -700,6 +701,7 @@ func (r *Repository) loadProductMovements(ctx context.Context, inventoryID strin
 			Stage:        valueObject.Stage(stage),
 			Reference:    ref,
 			LotNumber:    lot,
+			UserID:       userID,
 			CreatedAt:    createdAt,
 		})
 	}
@@ -812,9 +814,9 @@ func (r *Repository) SaveDrySupplyInventory(ctx context.Context, inv dry_supply_
 	for i := existing; i < len(movements); i++ {
 		m := movements[i]
 		_, err := r.pool.Exec(ctx,
-			`INSERT INTO dry_supply_inventory_movements (dry_supply_inventory_id, movement_type, quantity, reference, created_at)
-			 VALUES ($1,$2,$3,$4,$5)`,
-			inv.GetID(), string(m.MovementType), m.Quantity, m.Reference, m.CreatedAt,
+			`INSERT INTO dry_supply_inventory_movements (dry_supply_inventory_id, movement_type, quantity, reference, user_id, created_at)
+			 VALUES ($1,$2,$3,$4,$5,$6)`,
+			inv.GetID(), string(m.MovementType), m.Quantity, m.Reference, m.UserID, m.CreatedAt,
 		)
 		if err != nil {
 			return err
@@ -825,7 +827,7 @@ func (r *Repository) SaveDrySupplyInventory(ctx context.Context, inv dry_supply_
 
 func (r *Repository) loadDrySupplyMovements(ctx context.Context, inventoryID string) ([]valueObject.DrySupplyMovement, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT movement_type, quantity, COALESCE(reference,''), created_at
+		`SELECT movement_type, quantity, COALESCE(reference,''), COALESCE(user_id,''), created_at
 		 FROM dry_supply_inventory_movements WHERE dry_supply_inventory_id = $1 ORDER BY created_at`, inventoryID)
 	if err != nil {
 		return nil, err
@@ -833,15 +835,16 @@ func (r *Repository) loadDrySupplyMovements(ctx context.Context, inventoryID str
 	defer rows.Close()
 	var movements []valueObject.DrySupplyMovement
 	for rows.Next() {
-		var movType, ref, createdAt string
+		var movType, ref, userID, createdAt string
 		var qty uint64
-		if err := rows.Scan(&movType, &qty, &ref, &createdAt); err != nil {
+		if err := rows.Scan(&movType, &qty, &ref, &userID, &createdAt); err != nil {
 			return nil, err
 		}
 		movements = append(movements, valueObject.DrySupplyMovement{
 			MovementType: valueObject.DrySupplyMovementType(movType),
 			Quantity:     qty,
 			Reference:    ref,
+			UserID:       userID,
 			CreatedAt:    createdAt,
 		})
 	}
@@ -857,6 +860,99 @@ func (r *Repository) GetDailyLotCount(ctx context.Context) (int, error) {
 		 WHERE lot_number IS NOT NULL AND lot_number != '' AND DATE(created_at) = $1`, today,
 	).Scan(&count)
 	return count, err
+}
+
+// QueryMovements returns a paginated, filtered list of all inventory movements (products + dry supplies).
+func (r *Repository) QueryMovements(ctx context.Context, filter inventory_svc.MovementFilter) (*inventory_svc.MovementsResult, error) {
+	args := []interface{}{}
+	argIdx := 1
+
+	buildWhere := func(dateCol, userCol, typeCol, itemJoinFilter string, itemFilterVal string) string {
+		where := ""
+		if filter.FromDate != "" {
+			where += fmt.Sprintf(" AND %s >= $%d", dateCol, argIdx)
+			args = append(args, filter.FromDate)
+			argIdx++
+		}
+		if filter.ToDate != "" {
+			where += fmt.Sprintf(" AND %s < $%d", dateCol, argIdx)
+			args = append(args, filter.ToDate)
+			argIdx++
+		}
+		if filter.UserID != "" {
+			where += fmt.Sprintf(" AND %s = $%d", userCol, argIdx)
+			args = append(args, filter.UserID)
+			argIdx++
+		}
+		if filter.MovementType != "" {
+			where += fmt.Sprintf(" AND %s = $%d", typeCol, argIdx)
+			args = append(args, filter.MovementType)
+			argIdx++
+		}
+		if itemFilterVal != "" {
+			where += fmt.Sprintf(" AND %s = $%d", itemJoinFilter, argIdx)
+			args = append(args, itemFilterVal)
+			argIdx++
+		}
+		return where
+	}
+
+	includeProducts := filter.Category == "" || filter.Category == "PRODUCT"
+	includeSupplies := filter.Category == "" || filter.Category == "DRY_SUPPLY"
+
+	queries := []string{}
+
+	if includeProducts {
+		pw := buildWhere("m.created_at", "m.user_id", "m.movement_type", "p.id", filter.ProductID)
+		q := fmt.Sprintf(`SELECT m.movement_type, m.quantity, m.reference, COALESCE(m.stage,''), COALESCE(m.lot_number,''), COALESCE(m.user_id,''), m.created_at, p.name, 'PRODUCT'
+			FROM product_inventory_movements m
+			JOIN product_inventories pi ON pi.id = m.product_inventory_id
+			JOIN products p ON p.id = pi.product_id
+			WHERE 1=1 %s`, pw)
+		queries = append(queries, q)
+	}
+
+	if includeSupplies {
+		sw := buildWhere("m.created_at", "m.user_id", "m.movement_type", "ds.id", filter.DrySupplyID)
+		q := fmt.Sprintf(`SELECT m.movement_type, m.quantity, m.reference, '', '', COALESCE(m.user_id,''), m.created_at, ds.name, 'DRY_SUPPLY'
+			FROM dry_supply_inventory_movements m
+			JOIN dry_supply_inventories dsi ON dsi.id = m.dry_supply_inventory_id
+			JOIN dry_supplies ds ON ds.id = dsi.dry_supply_id
+			WHERE 1=1 %s`, sw)
+		queries = append(queries, q)
+	}
+
+	if len(queries) == 0 {
+		return &inventory_svc.MovementsResult{}, nil
+	}
+
+	unionQuery := strings.Join(queries, " UNION ALL ")
+
+	// Count total
+	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM (%s) sub", unionQuery)
+	var total int
+	if err := r.pool.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count movements: %w", err)
+	}
+
+	// Paginated data
+	offset := (filter.Page - 1) * filter.PageSize
+	dataSQL := fmt.Sprintf("%s ORDER BY created_at DESC LIMIT %d OFFSET %d", unionQuery, filter.PageSize, offset)
+	rows, err := r.pool.Query(ctx, dataSQL, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query movements: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []inventory_svc.MovementEntry
+	for rows.Next() {
+		var e inventory_svc.MovementEntry
+		if err := rows.Scan(&e.MovementType, &e.Quantity, &e.Reference, &e.Stage, &e.LotNumber, &e.UserID, &e.CreatedAt, &e.ItemName, &e.Category); err != nil {
+			return nil, err
+		}
+		entries = append(entries, e)
+	}
+	return &inventory_svc.MovementsResult{Movements: entries, TotalCount: total}, rows.Err()
 }
 
 // ctx_bg is a helper to use context.Background() in methods with no context parameter.

@@ -17,6 +17,7 @@ import (
 	sale_order "ricitelli-back/internal/domain/sale-order"
 	vineyard_domain "ricitelli-back/internal/domain/vineyard"
 	"ricitelli-back/internal/entities"
+	inventory_svc "ricitelli-back/internal/service/inventory"
 	valueObject "ricitelli-back/internal/value-object"
 )
 
@@ -384,7 +385,7 @@ func (r *InMemoryRepository) seedDrySupplies() {
 
 		inv, _ := dry_supply_inventory.NewDrySupplyInventory(ds.GetID())
 		if s.stock > 0 {
-			_ = inv.AddStock(s.stock, "seed-initial-stock")
+			_ = inv.AddStock(s.stock, "seed-initial-stock", "system")
 		}
 		r.DrySupplyInventories = append(r.DrySupplyInventories, inv)
 	}
@@ -486,10 +487,10 @@ func (r *InMemoryRepository) seedProductInventory() {
 			panic(err)
 		}
 		if qty := undressedStock[prod.GetID()]; qty > 0 {
-			_ = inv.AddUndressed("seed-initial-production", qty)
+			_ = inv.AddUndressed("seed-initial-production", qty, "system")
 		}
 		if qty := dressedStock[prod.GetID()]; qty > 0 {
-			_ = inv.ConvertSVtoPT("seed-initial-dressing", qty, "")
+			_ = inv.ConvertSVtoPT("seed-initial-dressing", qty, "", "system")
 		}
 		r.ProductInventory = append(r.ProductInventory, inv)
 	}
@@ -714,4 +715,109 @@ func (r *InMemoryRepository) GetProductImage(ctx context.Context, id string) (st
 	r.productImagesMutex.RLock()
 	defer r.productImagesMutex.RUnlock()
 	return r.ProductImages[id], nil
+}
+
+// QueryMovements returns movements from in-memory data (basic implementation).
+func (r *InMemoryRepository) QueryMovements(ctx context.Context, filter inventory_svc.MovementFilter) (*inventory_svc.MovementsResult, error) {
+	var entries []inventory_svc.MovementEntry
+
+	includeProducts := filter.Category == "" || filter.Category == "PRODUCT"
+	includeSupplies := filter.Category == "" || filter.Category == "DRY_SUPPLY"
+
+	if includeProducts {
+		// Build product name lookup
+		r.productsMutex.RLock()
+		productNames := make(map[string]string)
+		for _, p := range r.Products {
+			productNames[p.GetID()] = p.GetName()
+		}
+		r.productsMutex.RUnlock()
+
+		r.productInventoryMutex.RLock()
+		for _, inv := range r.ProductInventory {
+			for _, m := range inv.GetMovements() {
+				if filter.MovementType != "" && string(m.MovementType) != filter.MovementType {
+					continue
+				}
+				if filter.UserID != "" && m.UserID != filter.UserID {
+					continue
+				}
+				if filter.FromDate != "" && m.CreatedAt < filter.FromDate {
+					continue
+				}
+				if filter.ToDate != "" && m.CreatedAt >= filter.ToDate {
+					continue
+				}
+				name := productNames[inv.GetProductID()]
+				if name == "" {
+					name = inv.GetProductID()
+				}
+				entries = append(entries, inventory_svc.MovementEntry{
+					MovementType: string(m.MovementType),
+					Quantity:     m.Quantity,
+					Reference:    m.Reference,
+					Stage:        string(m.Stage),
+					LotNumber:    m.LotNumber,
+					UserID:       m.UserID,
+					CreatedAt:    m.CreatedAt,
+					ItemName:     name,
+					Category:     "PRODUCT",
+				})
+			}
+		}
+		r.productInventoryMutex.RUnlock()
+	}
+
+	if includeSupplies {
+		// Build dry supply name lookup
+		r.drySupplyMutex.RLock()
+		supplyNames := make(map[string]string)
+		for _, ds := range r.DrySupplies {
+			supplyNames[ds.GetID()] = ds.GetName()
+		}
+		r.drySupplyMutex.RUnlock()
+
+		r.drySupplyInventoryMutex.RLock()
+		for _, inv := range r.DrySupplyInventories {
+			for _, m := range inv.GetMovements() {
+				if filter.MovementType != "" && string(m.MovementType) != filter.MovementType {
+					continue
+				}
+				if filter.UserID != "" && m.UserID != filter.UserID {
+					continue
+				}
+				if filter.FromDate != "" && m.CreatedAt < filter.FromDate {
+					continue
+				}
+				if filter.ToDate != "" && m.CreatedAt >= filter.ToDate {
+					continue
+				}
+				name := supplyNames[inv.GetDrySupplyID()]
+				if name == "" {
+					name = inv.GetDrySupplyID()
+				}
+				entries = append(entries, inventory_svc.MovementEntry{
+					MovementType: string(m.MovementType),
+					Quantity:     m.Quantity,
+					Reference:    m.Reference,
+					UserID:       m.UserID,
+					CreatedAt:    m.CreatedAt,
+					ItemName:     name,
+					Category:     "DRY_SUPPLY",
+				})
+			}
+		}
+		r.drySupplyInventoryMutex.RUnlock()
+	}
+
+	total := len(entries)
+	start := (filter.Page - 1) * filter.PageSize
+	if start > total {
+		start = total
+	}
+	end := start + filter.PageSize
+	if end > total {
+		end = total
+	}
+	return &inventory_svc.MovementsResult{Movements: entries[start:end], TotalCount: total}, nil
 }

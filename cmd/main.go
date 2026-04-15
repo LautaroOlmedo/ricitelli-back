@@ -51,6 +51,7 @@ func main() {
 			dry_supply_svc.NewDrySupplyService(pgRepo),
 			customer_svc.NewCustomerService(pgRepo, pgRepo),
 			vineyard_svc.NewVineyardService(vineyardRepo),
+			pgRepo,
 		)
 		return
 	}
@@ -65,6 +66,7 @@ func main() {
 		dry_supply_svc.NewDrySupplyService(r),
 		customer_svc.NewCustomerService(r, r),
 		vineyard_svc.NewVineyardService(r),
+		r,
 	)
 }
 
@@ -77,13 +79,14 @@ func boot(
 	drySupplySvc *dry_supply_svc.Service,
 	customerSvc *customer_svc.Service,
 	vineyardSvc *vineyard_svc.Service,
+	movementStorage inventory_svc.MovementStorage,
 ) {
 	appSvc := application_service.NewApplicationService(
 		customerSvc, saleOrderSvc, productionOrderSvc,
 		productSvc, productInvSvc, drySupplySvc,
 	)
 
-	inventorySvc := inventory_svc.NewInventoryService(productSvc, productInvSvc, drySupplySvc)
+	inventorySvc := inventory_svc.NewInventoryService(productSvc, productInvSvc, drySupplySvc, movementStorage)
 
 	interceptor := auth.NewUnaryInterceptor(cfg.JWTSecret)
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptor))

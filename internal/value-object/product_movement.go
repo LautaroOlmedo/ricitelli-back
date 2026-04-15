@@ -40,10 +40,11 @@ type ProductMovement struct {
 	Reference    string // saleOrderID, productionOrderID, dispatchID
 	Stage        Stage  // VESTIDO, SIN VESTIR
 	LotNumber    string // e.g., "L-081124-38-11" — assigned when converting SV→PT
+	UserID       string
 	CreatedAt    string
 }
 
-func NewProductMovement(reference string, stage Stage, movementType ProductMovementType, quantity uint64) (ProductMovement, error) {
+func NewProductMovement(reference string, stage Stage, movementType ProductMovementType, quantity uint64, userID string) (ProductMovement, error) {
 	if movementType == "" || reference == "" {
 		return ProductMovement{}, errors.New("inventory movement type or reference is empty")
 	}
@@ -55,12 +56,13 @@ func NewProductMovement(reference string, stage Stage, movementType ProductMovem
 		MovementType: movementType,
 		Stage:        stage,
 		Quantity:     quantity,
+		UserID:       userID,
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }
 
-func NewProductMovementWithLot(reference string, stage Stage, movementType ProductMovementType, quantity uint64, lotNumber string) (ProductMovement, error) {
-	m, err := NewProductMovement(reference, stage, movementType, quantity)
+func NewProductMovementWithLot(reference string, stage Stage, movementType ProductMovementType, quantity uint64, lotNumber string, userID string) (ProductMovement, error) {
+	m, err := NewProductMovement(reference, stage, movementType, quantity, userID)
 	if err != nil {
 		return ProductMovement{}, err
 	}
