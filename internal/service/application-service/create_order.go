@@ -212,7 +212,7 @@ func (s *Service) executeProduction(ctx context.Context, prodOrderID, saleOrderI
 			return fmt.Errorf("get inventory for dressing %s: %w", pn.productID, err)
 		}
 		lotNumber := fmt.Sprintf("L-%s-%d-%s", lotBase, pn.quantity, prodOrderID[:8])
-		if err := inv.ConvertSVtoPT(prodOrderID, pn.quantity, lotNumber); err != nil {
+		if err := inv.ConvertSVtoPT(prodOrderID, pn.quantity, lotNumber, userIDFromCtx(ctx)); err != nil {
 			return fmt.Errorf("dress bottles for %s: %w", pn.productID, err)
 		}
 		if err := s.ProductInventoryService.SaveProductInventory(*inv); err != nil {
@@ -237,7 +237,7 @@ func (s *Service) reserveAndReady(ctx context.Context, saleOrderID string, itemS
 		if err != nil {
 			return fmt.Errorf("reserveAndReady: get inventory %s: %w", is.productID, err)
 		}
-		if err := inv.Reserve(saleOrderID, is.requested); err != nil {
+		if err := inv.Reserve(saleOrderID, is.requested, userIDFromCtx(ctx)); err != nil {
 			return fmt.Errorf("reserveAndReady: reserve stock for %s: %w", is.productID, err)
 		}
 		if err := s.ProductInventoryService.SaveProductInventory(*inv); err != nil {

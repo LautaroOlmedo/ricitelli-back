@@ -24,10 +24,11 @@ type DrySupplyMovement struct {
 	MovementType DrySupplyMovementType
 	Quantity     uint64
 	Reference    string // production order ID or purchase reference
+	UserID       string
 	CreatedAt    string
 }
 
-func NewDrySupplyMovement(movementType DrySupplyMovementType, quantity uint64, reference string) (DrySupplyMovement, error) {
+func NewDrySupplyMovement(movementType DrySupplyMovementType, quantity uint64, reference string, userID string) (DrySupplyMovement, error) {
 	if movementType == "" {
 		return DrySupplyMovement{}, errors.New("movement type cannot be empty")
 	}
@@ -38,6 +39,7 @@ func NewDrySupplyMovement(movementType DrySupplyMovementType, quantity uint64, r
 		MovementType: movementType,
 		Quantity:     quantity,
 		Reference:    reference,
+		UserID:       userID,
 		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 	}, nil
 }

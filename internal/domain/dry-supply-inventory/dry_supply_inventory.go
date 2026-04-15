@@ -86,8 +86,8 @@ func (d *DrySupplyInventory) AvailableStock() int64 {
 }
 
 // AddStock records an incoming stock movement (purchase/receipt).
-func (d *DrySupplyInventory) AddStock(quantity uint64, reference string) error {
-	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyIn, quantity, reference)
+func (d *DrySupplyInventory) AddStock(quantity uint64, reference string, userID string) error {
+	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyIn, quantity, reference, userID)
 	if err != nil {
 		return err
 	}
@@ -97,11 +97,11 @@ func (d *DrySupplyInventory) AddStock(quantity uint64, reference string) error {
 
 // Commit reserves stock for a production order.
 // Returns error if there is insufficient available stock.
-func (d *DrySupplyInventory) Commit(quantity uint64, reference string) error {
+func (d *DrySupplyInventory) Commit(quantity uint64, reference string, userID string) error {
 	if int64(quantity) > d.AvailableStock() {
 		return fmt.Errorf("insufficient available stock: need %d, have %d", quantity, d.AvailableStock())
 	}
-	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyCommitted, quantity, reference)
+	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyCommitted, quantity, reference, userID)
 	if err != nil {
 		return err
 	}
@@ -110,8 +110,8 @@ func (d *DrySupplyInventory) Commit(quantity uint64, reference string) error {
 }
 
 // Release cancels a previous commitment (e.g., production order cancelled).
-func (d *DrySupplyInventory) Release(quantity uint64, reference string) error {
-	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyReleased, quantity, reference)
+func (d *DrySupplyInventory) Release(quantity uint64, reference string, userID string) error {
+	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyReleased, quantity, reference, userID)
 	if err != nil {
 		return err
 	}
@@ -120,8 +120,8 @@ func (d *DrySupplyInventory) Release(quantity uint64, reference string) error {
 }
 
 // Consume records actual usage when production is completed.
-func (d *DrySupplyInventory) Consume(quantity uint64, reference string) error {
-	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyConsumed, quantity, reference)
+func (d *DrySupplyInventory) Consume(quantity uint64, reference string, userID string) error {
+	m, err := valueObject.NewDrySupplyMovement(valueObject.DrySupplyConsumed, quantity, reference, userID)
 	if err != nil {
 		return err
 	}

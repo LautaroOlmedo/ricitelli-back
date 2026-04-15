@@ -52,6 +52,37 @@ message AddUndressedStockRequest {
   string reference  = 3; // e.g. "ingreso manual 2026-03-13"
 }
 
+// MovementFilter is used to query audit movements with optional filters.
+message MovementFilter {
+  string from_date      = 1; // RFC3339, inclusive
+  string to_date        = 2; // RFC3339, exclusive
+  string user_id        = 3;
+  string movement_type  = 4; // e.g. "DRY_SUPPLY_IN", "PRODUCT_PRODUCED"
+  string product_id     = 5;
+  string dry_supply_id  = 6;
+  int32  page           = 7; // 1-based
+  int32  page_size      = 8; // default 50
+  string category       = 9; // "PRODUCT", "DRY_SUPPLY", or "" for all
+}
+
+message MovementEntry {
+  string id             = 1;
+  string movement_type  = 2;
+  int64  quantity       = 3;
+  string reference      = 4;
+  string stage          = 5;  // empty for dry supply movements
+  string lot_number     = 6;
+  string user_id        = 7;
+  string created_at     = 8;
+  string item_name      = 9;  // product name or dry supply name
+  string category       = 10; // "PRODUCT" or "DRY_SUPPLY"
+}
+
+message GetMovementsResponse {
+  repeated MovementEntry movements = 1;
+  int32 total_count = 2;
+}
+
 service InventoryService {
   // GetInventoryReport returns a full tricapa snapshot for all products and dry supplies.
   rpc GetInventoryReport(google.protobuf.Empty)        returns (InventoryReport);
@@ -63,4 +94,6 @@ service InventoryService {
   rpc GetProductTricapa(GetProductTricapaRequest)      returns (ProductTricapa);
   // AddUndressedStock ingests new SV (sin vestir) bottles into a product's inventory.
   rpc AddUndressedStock(AddUndressedStockRequest)      returns (google.protobuf.Empty);
+  // GetMovements returns audit trail movements with optional filters.
+  rpc GetMovements(MovementFilter)                     returns (GetMovementsResponse);
 }
