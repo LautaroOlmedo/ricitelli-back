@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"net/http"
 
 	authpb "ricitelli-back/cmd/http/gen/auth"
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
@@ -11,6 +12,7 @@ import (
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
+	reportingpb "ricitelli-back/cmd/http/gen/reporting"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
 	vineyardpb "ricitelli-back/cmd/http/gen/vineyard"
 	"ricitelli-back/cmd/http/server"
@@ -25,6 +27,8 @@ import (
 	"ricitelli-back/internal/service/product"
 	product_inventory "ricitelli-back/internal/service/product-inventory"
 	production_order "ricitelli-back/internal/service/production-order"
+	reporting_svc "ricitelli-back/internal/service/reporting"
+	reporting_storage "ricitelli-back/internal/service/reporting/storage"
 	sale_order "ricitelli-back/internal/service/sale-order"
 	vineyard_svc "ricitelli-back/internal/service/vineyard"
 
@@ -88,11 +92,28 @@ func boot(
 
 	inventorySvc := inventory_svc.NewInventoryService(productSvc, productInvSvc, drySupplySvc, movementStorage)
 
+	// Reporting service (reuses existing services — agnostic of repository).
+	reportingStore, err := reporting_storage.NewStore(cfg.ReportsOutputDir)
+	if err != nil {
+		log.Fatalf("failed to init reporting storage: %v", err)
+	}
+	reportingSvc := reporting_svc.NewService(
+		saleOrderSvc,
+		productionOrderSvc,
+		productSvc,
+		drySupplySvc,
+		customerSvc,
+		inventorySvc,
+		reportingStore,
+		cfg.ReportsPublicURLBase,
+	)
+
 	interceptor := auth.NewUnaryInterceptor(cfg.JWTSecret)
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptor))
 
 	svc := server.NewServer(appSvc, drySupplySvc, inventorySvc, customerSvc, vineyardSvc)
 	authSvc := server.NewAuthServer(cfg.JWTSecret, cfg.AdminUser, cfg.AdminPass)
+	reportingSrv := server.NewReportingServer(reportingSvc)
 
 	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
@@ -103,6 +124,16 @@ func boot(
 	customerpb.RegisterCustomerServiceServer(grpcServer, svc)
 	vineyardpb.RegisterVineyardServiceServer(grpcServer, svc)
 	authpb.RegisterAuthServiceServer(grpcServer, authSvc)
+	reportingpb.RegisterReportingServiceServer(grpcServer, reportingSrv)
+
+	// HTTP server for downloading generated PDFs.
+	go func() {
+		handler := server.NewDownloadHandler(reportingSvc, cfg.JWTSecret)
+		log.Printf("HTTP report download server listening on %s\n", cfg.ReportsHTTPPort)
+		if err := http.ListenAndServe(cfg.ReportsHTTPPort, handler); err != nil {
+			log.Printf("report download server stopped: %v", err)
+		}
+	}()
 
 	lis, err := net.Listen("tcp", cfg.Port)
 	if err != nil {

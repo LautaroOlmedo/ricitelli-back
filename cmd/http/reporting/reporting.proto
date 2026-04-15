@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package reporting;
+
+option go_package = "ricitelli-back/cmd/http/gen/reporting;reportingpb";
+
+import "google/protobuf/empty.proto";
+
+// ReportFilter defines the date range and optional secondary filters for report generation.
+message ReportFilter {
+  string from_date   = 1; // RFC3339, inclusive
+  string to_date     = 2; // RFC3339, exclusive
+  string customer_id = 3;
+  string market      = 4; // "" | DOMESTIC | EXPORT
+  string currency    = 5; // ARS | USD | EUR | CAD
+  string product_id  = 6;
+}
+
+message LotRequest {
+  string lot_number = 1;
+}
+
+message CustomerReportRequest {
+  string customer_id = 1;
+  string from_date   = 2;
+  string to_date     = 3;
+}
+
+// ReportResponse is the metadata returned after generating a report.
+message ReportResponse {
+  string id           = 1; // UUID
+  string type         = 2; // SALES | PRODUCTION | GENERAL | LOW_STOCK | LOT | CUSTOMER
+  string filename     = 3;
+  string download_url = 4;
+  string generated_at = 5; // RFC3339
+  int64  file_size    = 6;
+  string from_date    = 7;
+  string to_date      = 8;
+}
+
+message ListReportsRequest {
+  string type      = 1; // filter by type; "" for all
+  int32  page      = 2;
+  int32  page_size = 3;
+}
+
+message ListReportsResponse {
+  repeated ReportResponse reports = 1;
+  int32 total_count = 2;
+}
+
+service ReportingService {
+  rpc GenerateSalesReport            (ReportFilter)          returns (ReportResponse);
+  rpc GenerateProductionReport       (ReportFilter)          returns (ReportResponse);
+  rpc GenerateGeneralReport          (ReportFilter)          returns (ReportResponse);
+  rpc GenerateLowStockReport         (google.protobuf.Empty) returns (ReportResponse);
+  rpc GenerateLotTraceabilityReport  (LotRequest)            returns (ReportResponse);
+  rpc GenerateCustomerReport         (CustomerReportRequest) returns (ReportResponse);
+  rpc ListReports                    (ListReportsRequest)    returns (ListReportsResponse);
+}

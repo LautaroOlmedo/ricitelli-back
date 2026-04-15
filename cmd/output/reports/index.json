@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ebbb87ef-5526-487f-b04d-8fd2bef8d63b",
+    "type": "PRODUCTION",
+    "filename": "report-PRODUCTION-ebbb87ef.pdf",
+    "path": "output/reports/2026-04-15/report-PRODUCTION-ebbb87ef.pdf",
+    "generated_at": "2026-04-15T23:15:49.130617292Z",
+    "file_size": 35343,
+    "from_date": "2026-04-15T23:13:00.000Z",
+    "to_date": "2026-04-15T23:14:00.000Z"
+  },
+  {
+    "id": "7a3a8deb-0364-44e1-b892-d23eabeb1d70",
+    "type": "LOW_STOCK",
+    "filename": "report-LOW_STOCK-7a3a8deb.pdf",
+    "path": "output/reports/2026-04-15/report-LOW_STOCK-7a3a8deb.pdf",
+    "generated_at": "2026-04-15T23:15:38.211126255Z",
+    "file_size": 2323
+  },
+  {
+    "id": "36680f4e-528a-43e5-9f19-44b1049ffd68",
+    "type": "SALES",
+    "filename": "report-SALES-36680f4e.pdf",
+    "path": "output/reports/2026-04-15/report-SALES-36680f4e.pdf",
+    "generated_at": "2026-04-15T23:14:14.644455225Z",
+    "file_size": 76369,
+    "from_date": "2026-04-15T23:13:00.000Z",
+    "to_date": "2026-04-15T23:14:00.000Z"
+  }
+]
