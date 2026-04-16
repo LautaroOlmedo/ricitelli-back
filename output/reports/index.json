@@ -1,0 +1,12 @@
+[
+  {
+    "id": "3f8367eb-9a36-4dec-a5ca-0bcc6c4b7e6d",
+    "type": "SALES",
+    "filename": "report-SALES-3f8367eb.pdf",
+    "path": "output/reports/2026-04-16/report-SALES-3f8367eb.pdf",
+    "generated_at": "2026-04-16T11:18:05.953737Z",
+    "file_size": 76744,
+    "from_date": "2026-04-15T11:17:00.000Z",
+    "to_date": "2026-04-16T11:18:00.000Z"
+  }
+]

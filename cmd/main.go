@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"net/http"
@@ -36,6 +37,9 @@ import (
 )
 
 func main() {
+	minimal := flag.Bool("minimal", false, "arranca sin datos de prueba (solo clientes + usuario admin)")
+	flag.Parse()
+
 	cfg := config.LoadConfig()
 
 	if cfg.DatabaseURL != "" {
@@ -61,7 +65,12 @@ func main() {
 	}
 
 	log.Println("DATABASE_URL not set — using in-memory repository")
-	r := inmemory.NewInMemoryRepository()
+	var r *inmemory.InMemoryRepository
+	if *minimal {
+		r = inmemory.NewInMemoryRepositoryMinimal()
+	} else {
+		r = inmemory.NewInMemoryRepository()
+	}
 	boot(cfg,
 		product.NewProductService(r),
 		product_inventory.NewProductInventoryService(r),

@@ -44,6 +44,14 @@ type InMemoryRepository struct {
 }
 
 func NewInMemoryRepository() *InMemoryRepository {
+	return newRepo(false)
+}
+
+func NewInMemoryRepositoryMinimal() *InMemoryRepository {
+	return newRepo(true)
+}
+
+func newRepo(minimal bool) *InMemoryRepository {
 	repo := &InMemoryRepository{
 		Customers:            make([]customer_domain.Customer, 0),
 		SaleOrders:           make([]sale_order.SaleOrder, 0),
@@ -55,6 +63,13 @@ func NewInMemoryRepository() *InMemoryRepository {
 		Plots:                make([]vineyard_domain.Plot, 0),
 		ProductImages:        make(map[string]string),
 	}
+
+	if minimal {
+		log.Println("[InMemoryRepository] minimal mode — solo clientes cargados")
+		repo.seedCustomers()
+		return repo
+	}
+
 	dataPath := resolveDataPath()
 	if err := repo.SeedFromXLSX(dataPath); err != nil {
 		log.Printf("[InMemoryRepository] xlsx seeding failed (%v); falling back to hardcoded seeds\n", err)
