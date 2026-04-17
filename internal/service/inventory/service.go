@@ -54,7 +54,6 @@ type DrySupplyStorage interface {
 	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
 	GetDailyLotCount(ctx context.Context) (int, error)
 	CommitStock(ctx context.Context, drySupplyID string, quantity uint64, reference string) error
-	ConsumeStock(ctx context.Context, drySupplyID string, quantity uint64, reference string) error
 }
 
 type MovementStorage interface {
@@ -249,13 +248,11 @@ func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity 
 		return err
 	}
 
-	// Commit then consume each dry supply required by the BOM
+	// Solo CommitStock: marca los insumos como comprometidos (disponible baja, físico intacto).
+	// El consumo real ocurre al despachar.
 	for _, req := range reqs {
 		if err := s.drySupplyStorage.CommitStock(ctx, req.DrySupplyID, req.Quantity, lotNumber); err != nil {
 			return fmt.Errorf("commit dry supply %s: %w", req.DrySupplyID, err)
-		}
-		if err := s.drySupplyStorage.ConsumeStock(ctx, req.DrySupplyID, req.Quantity, lotNumber); err != nil {
-			return fmt.Errorf("consume dry supply %s: %w", req.DrySupplyID, err)
 		}
 	}
 	return nil

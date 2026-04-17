@@ -34,12 +34,12 @@ type itemStockInfo struct {
 }
 
 // CreateOrder implements the full sale order flow:
-//  1. If all requested products have sufficient DRESSED (PT) stock → reserve and set READY_TO_DISPATCH.
-//  2. Otherwise, create a ProductionOrder and attempt to dress the required bottles:
-//     - Validate available undressed (SV) stock.
-//     - Validate available dry supply stock.
-//     - If valid: dress bottles, commit+consume dry supplies, complete production order, reserve and set READY_TO_DISPATCH.
-//     - If invalid: cancel production order and sale order, return error.
+//  1. Creates the sale order with status NEW.
+//  2. If bottles need to be dressed: validates SV + dry supply stock, dresses bottles,
+//     commits+consumes dry supplies, completes the production order.
+//  3. The sale order always remains in status NEW after creation.
+//     Status transitions (CONFIRMED → INVOICED → READY_TO_DISPATCH → DISPATCHED)
+//     are driven manually by the user via the Kanban board.
 func (s *Service) CreateOrder(ctx context.Context, params CreateOrderParams) error {
 	soItems := make([]valueObject.SaleOrderItem, 0, len(params.Items))
 	for _, item := range params.Items {
@@ -63,67 +63,50 @@ func (s *Service) CreateOrder(ctx context.Context, params CreateOrderParams) err
 	}
 
 	saleOrderID := createdSaleOrder.GetID()
+	cancelOrder := func() { _ = s.cancelSaleOrder(ctx, saleOrderID) }
 
-	// cancelOrder is a helper to cancel the sale order on failure.
-	cancelOrder := func() {
-		_ = s.cancelSaleOrder(ctx, saleOrderID)
-	}
-
-	// ── Step 1: assess dressed stock per item ──────────────────────────────────
+	// ── Step 1: assess whether any dressing is needed ─────────────────────────
 	itemStocks, needsProduction, err := s.assessStock(ctx, createdSaleOrder.GetItems())
 	if err != nil {
 		cancelOrder()
 		return fmt.Errorf("CreateOrder: assess stock: %w", err)
 	}
 
-	// ── Step 2a: enough dressed stock for everything ───────────────────────────
-	if !needsProduction {
-		if err := s.reserveAndReady(ctx, saleOrderID, itemStocks); err != nil {
+	// ── Step 2: dress bottles + commit/consume dry supplies if needed ──────────
+	if needsProduction {
+		productionNeeds, err := s.buildAndValidateProductionNeeds(ctx, saleOrderID, itemStocks)
+		if err != nil {
 			cancelOrder()
 			return err
 		}
-		return nil
+
+		productionItems := make([]entities.ProductionItem, 0, len(productionNeeds))
+		for _, pn := range productionNeeds {
+			productionItems = append(productionItems, entities.ProductionItem{
+				ProductID:    pn.productID,
+				Quantity:     pn.quantity,
+				Requirements: pn.requirements,
+			})
+		}
+
+		prodOrder, err := s.ProductionOrderService.CreateProductionOrder(ctx, saleOrderID, productionItems)
+		if err != nil {
+			cancelOrder()
+			return fmt.Errorf("CreateOrder: create production order: %w", err)
+		}
+
+		if err := s.executeProduction(ctx, prodOrder.GetID(), saleOrderID, productionNeeds); err != nil {
+			_, _ = s.ProductionOrderService.UpdateProductionOrderStatus(ctx, prodOrder.GetID(), production_order.StatusCancelled)
+			cancelOrder()
+			return err
+		}
+
+		if _, err := s.ProductionOrderService.UpdateProductionOrderStatus(ctx, prodOrder.GetID(), production_order.StatusCompleted); err != nil {
+			return fmt.Errorf("CreateOrder: complete production order: %w", err)
+		}
 	}
 
-	// ── Step 2b: need to produce (dress) some bottles ─────────────────────────
-	productionNeeds, err := s.buildAndValidateProductionNeeds(ctx, saleOrderID, itemStocks)
-	if err != nil {
-		cancelOrder()
-		return err
-	}
-
-	// Build production items for the order record.
-	productionItems := make([]entities.ProductionItem, 0, len(productionNeeds))
-	for _, pn := range productionNeeds {
-		productionItems = append(productionItems, entities.ProductionItem{
-			ProductID:    pn.productID,
-			Quantity:     pn.quantity,
-			Requirements: pn.requirements,
-		})
-	}
-
-	prodOrder, err := s.ProductionOrderService.CreateProductionOrder(ctx, saleOrderID, productionItems)
-	if err != nil {
-		cancelOrder()
-		return fmt.Errorf("CreateOrder: create production order: %w", err)
-	}
-
-	// ── Step 3: execute production (dress + commit/consume dry supplies) ────────
-	if err := s.executeProduction(ctx, prodOrder.GetID(), saleOrderID, productionNeeds); err != nil {
-		_, _ = s.ProductionOrderService.UpdateProductionOrderStatus(ctx, prodOrder.GetID(), production_order.StatusCancelled)
-		cancelOrder()
-		return err
-	}
-
-	// Complete the production order.
-	if _, err := s.ProductionOrderService.UpdateProductionOrderStatus(ctx, prodOrder.GetID(), production_order.StatusCompleted); err != nil {
-		return fmt.Errorf("CreateOrder: complete production order: %w", err)
-	}
-
-	// ── Step 4: reserve dressed stock (now all available) and set order ready ──
-	if err := s.reserveAndReady(ctx, saleOrderID, itemStocks); err != nil {
-		return err
-	}
+	// Sale order stays in NEW — status progression is manual via Kanban.
 	return nil
 }
 

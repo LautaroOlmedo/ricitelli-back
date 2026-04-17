@@ -111,7 +111,7 @@ var validTransitions = map[Status][]Status{
 	StatusNew:             {StatusConfirmed, StatusReadyToDispatch, StatusCancelled},
 	StatusReadyToDispatch: {StatusInvoiced, StatusCancelled},
 	StatusConfirmed:       {StatusReadyToDispatch, StatusInvoiced, StatusCancelled},
-	StatusInvoiced:        {StatusDispatched, StatusCancelled},
+	StatusInvoiced:        {StatusReadyToDispatch, StatusDispatched, StatusCancelled},
 }
 
 // UpdateStatus advances the order through its lifecycle pipeline.
