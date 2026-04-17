@@ -106,7 +106,30 @@ func (s *Service) CreateOrder(ctx context.Context, params CreateOrderParams) err
 		}
 	}
 
-	// Sale order stays in NEW — status progression is manual via Kanban.
+	// Reserve dressed stock for all items (committed but not yet dispatched).
+	// Does NOT change sale order status — progression is manual via Kanban.
+	if err := s.reserveStock(ctx, saleOrderID, itemStocks); err != nil {
+		cancelOrder()
+		return err
+	}
+	return nil
+}
+
+// reserveStock reserves dressed PT stock for each item without changing order status.
+func (s *Service) reserveStock(ctx context.Context, saleOrderID string, itemStocks []itemStockInfo) error {
+	userID := userIDFromCtx(ctx)
+	for _, is := range itemStocks {
+		inv, err := s.ProductInventoryService.GetProductInventory(is.productID)
+		if err != nil {
+			return fmt.Errorf("reserveStock: get inventory %s: %w", is.productID, err)
+		}
+		if err := inv.Reserve(saleOrderID, is.requested, userID); err != nil {
+			return fmt.Errorf("reserveStock: reserve %s: %w", is.productID, err)
+		}
+		if err := s.ProductInventoryService.SaveProductInventory(*inv); err != nil {
+			return fmt.Errorf("reserveStock: save inventory %s: %w", is.productID, err)
+		}
+	}
 	return nil
 }
 

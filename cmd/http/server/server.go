@@ -144,7 +144,7 @@ func (s *Server) UpdateSaleOrderStatus(ctx context.Context, req *saleorderpb.Upd
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	order, err := s.AppService.SaleOrderService.UpdateSaleOrderStatus(ctx, req.Id, sale_order_domain.Status(req.Status))
+	order, err := s.AppService.TransitionSaleOrderStatus(ctx, req.Id, sale_order_domain.Status(req.Status))
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
