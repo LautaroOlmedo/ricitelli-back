@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"context"
+	"fmt"
 
 	"ricitelli-back/internal/auth"
 	dry_supply "ricitelli-back/internal/domain/dry-supply"
@@ -52,6 +53,8 @@ type DrySupplyStorage interface {
 	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
 	GetDrySupplyInventory(ctx context.Context, drySupplyID string) (*dry_supply_inventory.DrySupplyInventory, error)
 	GetDailyLotCount(ctx context.Context) (int, error)
+	CommitStock(ctx context.Context, drySupplyID string, quantity uint64, reference string) error
+	ConsumeStock(ctx context.Context, drySupplyID string, quantity uint64, reference string) error
 }
 
 type MovementStorage interface {
@@ -207,21 +210,55 @@ func (s *Service) GetProductTricapa(ctx context.Context, productID string) (*Pro
 	}, nil
 }
 
-// ConvertSVtoPT converts undressed (SV) wine to dressed (PT) and assigns a lot number.
+// ConvertSVtoPT converts undressed (SV) wine to dressed (PT), assigns a lot number,
+// and commits + consumes the dry supplies required by the product's BOM.
 // If lotNumber is empty, one is generated automatically in the format L-DDMMYY-NNN-XX.
 func (s *Service) ConvertSVtoPT(ctx context.Context, productID string, quantity uint64, lotNumber string) error {
+	product, err := s.productStorage.GetProductByID(ctx, productID)
+	if err != nil {
+		return fmt.Errorf("get product: %w", err)
+	}
+
 	inv, err := s.productInventory.GetProductInventory(productID)
 	if err != nil {
 		return err
 	}
+
 	if lotNumber == "" {
 		dailyCount, _ := s.drySupplyStorage.GetDailyLotCount(ctx)
 		lotNumber = GenerateLotNumber(productID, dailyCount+1)
 	}
-	if err := inv.ConvertSVtoPT("manual-conversion", quantity, lotNumber, userIDFromContext(ctx)); err != nil {
+
+	// Validate dry supply availability before mutating anything
+	reqs := product.CalculateRequirements(quantity)
+	for _, req := range reqs {
+		dsInv, err := s.drySupplyStorage.GetDrySupplyInventory(ctx, req.DrySupplyID)
+		if err != nil {
+			return fmt.Errorf("get dry supply inventory %s: %w", req.DrySupplyID, err)
+		}
+		if dsInv.AvailableStock() < int64(req.Quantity) {
+			return fmt.Errorf("insufficient dry supply %s: need %d, have %d",
+				req.DrySupplyID, req.Quantity, dsInv.AvailableStock())
+		}
+	}
+
+	if err := inv.ConvertSVtoPT(lotNumber, quantity, lotNumber, userIDFromContext(ctx)); err != nil {
 		return err
 	}
-	return s.productInventory.SaveProductInventory(*inv)
+	if err := s.productInventory.SaveProductInventory(*inv); err != nil {
+		return err
+	}
+
+	// Commit then consume each dry supply required by the BOM
+	for _, req := range reqs {
+		if err := s.drySupplyStorage.CommitStock(ctx, req.DrySupplyID, req.Quantity, lotNumber); err != nil {
+			return fmt.Errorf("commit dry supply %s: %w", req.DrySupplyID, err)
+		}
+		if err := s.drySupplyStorage.ConsumeStock(ctx, req.DrySupplyID, req.Quantity, lotNumber); err != nil {
+			return fmt.Errorf("consume dry supply %s: %w", req.DrySupplyID, err)
+		}
+	}
+	return nil
 }
 
 // AddUndressedStock ingests new SV (sin vestir) bottles into a product's inventory.
