@@ -30,27 +30,31 @@ type DrySupply struct {
 	reorderPoint int    // minimum stock threshold for alerts (0 = no alert)
 }
 
-func NewDrySupply(code, name string, category Category, unit string) (DrySupply, error) {
+func NewDrySupply(code, name string, category Category, unit string, reorderPoint int) (DrySupply, error) {
 	if code == "" {
 		return DrySupply{}, errors.New("dry supply code cannot be empty")
 	}
 	if name == "" {
 		return DrySupply{}, errors.New("dry supply name cannot be empty")
 	}
+	if reorderPoint < 0 {
+		reorderPoint = 0
+	}
 	return DrySupply{
-		id:       uuid.New().String(),
-		code:     code,
-		name:     name,
-		category: category,
-		unit:     unit,
+		id:           uuid.New().String(),
+		code:         code,
+		name:         name,
+		category:     category,
+		unit:         unit,
+		reorderPoint: reorderPoint,
 	}, nil
 }
 
-func NewDrySupplyWithID(id, code, name string, category Category, unit string) (DrySupply, error) {
+func NewDrySupplyWithID(id, code, name string, category Category, unit string, reorderPoint int) (DrySupply, error) {
 	if id == "" {
 		return DrySupply{}, errors.New("id cannot be empty")
 	}
-	ds, err := NewDrySupply(code, name, category, unit)
+	ds, err := NewDrySupply(code, name, category, unit, reorderPoint)
 	if err != nil {
 		return DrySupply{}, err
 	}

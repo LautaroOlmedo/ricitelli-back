@@ -494,19 +494,19 @@ func (r *Repository) loadMaterialRequirements(ctx context.Context, productionIte
 
 // ===== PRODUCT =====
 
-func (r *Repository) CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) error {
+func (r *Repository) CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) (*product_domain.Product, error) {
 	p, err := product_domain.NewProduct(name, bods)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback(ctx)
 	_, err = tx.Exec(ctx, `INSERT INTO products (id, name, active) VALUES ($1,$2,$3)`, p.GetID(), p.GetName(), p.GetActive())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, bod := range bods {
 		_, err = tx.Exec(ctx,
@@ -514,7 +514,7 @@ func (r *Repository) CreateProduct(ctx context.Context, name string, bods []valu
 			p.GetID(), bod.DrySupplyID, bod.QuantityPerUnit,
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	// Auto-create inventory record
@@ -523,9 +523,12 @@ func (r *Repository) CreateProduct(ctx context.Context, name string, bods []valu
 		p.GetID(), p.GetID(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 func (r *Repository) GetProductByID(ctx context.Context, id string) (*product_domain.Product, error) {
@@ -710,8 +713,8 @@ func (r *Repository) loadProductMovements(ctx context.Context, inventoryID strin
 
 // ===== DRY SUPPLY =====
 
-func (r *Repository) CreateDrySupply(ctx context.Context, code, name string, category dry_supply_domain.Category, unit string) (*dry_supply_domain.DrySupply, error) {
-	ds, err := dry_supply_domain.NewDrySupply(code, name, category, unit)
+func (r *Repository) CreateDrySupply(ctx context.Context, code, name string, category dry_supply_domain.Category, unit string, reorderPoint int) (*dry_supply_domain.DrySupply, error) {
+	ds, err := dry_supply_domain.NewDrySupply(code, name, category, unit, reorderPoint)
 	if err != nil {
 		return nil, err
 	}

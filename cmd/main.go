@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
-	authpb "ricitelli-back/cmd/http/gen/auth"
 	applicationpb "ricitelli-back/cmd/http/gen/application_service"
+	authpb "ricitelli-back/cmd/http/gen/auth"
 	customerpb "ricitelli-back/cmd/http/gen/customer"
 	drysupplypb "ricitelli-back/cmd/http/gen/dry_supply"
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"

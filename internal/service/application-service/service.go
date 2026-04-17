@@ -51,7 +51,7 @@ type ProductionOrderService interface {
 
 //go:generate mockgen -source=service.go -destination=././mocks/product_service_mock.go -package=mocks
 type ProductService interface {
-	CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) error
+	CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) (*product.Product, error)
 	GetProductByID(ctx context.Context, id string) (*product.Product, error)
 	GetProducts(ctx context.Context) ([]product.Product, error)
 	UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error
@@ -66,7 +66,7 @@ type ProductInventoryService interface {
 }
 
 type DrySupplyService interface {
-	CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string) (*dry_supply.DrySupply, error)
+	CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string, reorderPoint int) (*dry_supply.DrySupply, error)
 	GetDrySupplyByID(ctx context.Context, id string) (*dry_supply.DrySupply, error)
 	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
 	AddStock(ctx context.Context, drySupplyID string, quantity uint64, reference string) error

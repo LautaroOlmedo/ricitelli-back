@@ -218,15 +218,15 @@ func (r *InMemoryRepository) GetProductionOrders(ctx context.Context) ([]product
 
 // ===== PRODUCT =====
 
-func (r *InMemoryRepository) CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) error {
+func (r *InMemoryRepository) CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) (*product.Product, error) {
 	r.productsMutex.Lock()
 	defer r.productsMutex.Unlock()
 	newProduct, err := product.NewProduct(name, bods)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	r.Products = append(r.Products, newProduct)
-	return nil
+	return &r.Products[len(r.Products)-1], nil
 }
 
 func (r *InMemoryRepository) GetProductByID(ctx context.Context, id string) (*product.Product, error) {
@@ -283,10 +283,10 @@ func (r *InMemoryRepository) SaveProductInventory(inv product_inventory.ProductI
 
 // ===== DRY SUPPLY =====
 
-func (r *InMemoryRepository) CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string) (*dry_supply.DrySupply, error) {
+func (r *InMemoryRepository) CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string, reorderPoint int) (*dry_supply.DrySupply, error) {
 	r.drySupplyMutex.Lock()
 	defer r.drySupplyMutex.Unlock()
-	ds, err := dry_supply.NewDrySupply(code, name, category, unit)
+	ds, err := dry_supply.NewDrySupply(code, name, category, unit, reorderPoint)
 	if err != nil {
 		return nil, err
 	}
@@ -356,43 +356,44 @@ func (r *InMemoryRepository) SaveDrySupplyInventory(ctx context.Context, inv dry
 
 func (r *InMemoryRepository) seedDrySupplies() {
 	type seedDS struct {
-		id       string
-		code     string
-		name     string
-		category dry_supply.Category
-		unit     string
-		stock    uint64
+		id           string
+		code         string
+		name         string
+		category     dry_supply.Category
+		unit         string
+		stock        uint64
+		reorderPoint int
 	}
 	seeds := []seedDS{
 		// Hey Malbec! line
-		{"ds-heym-box", "HEYM-BOX-6", "Caja x6 Hey Malbec!", dry_supply.CategoryBox, "UNIT", 2000},
-		{"ds-heym-box12", "HEYM-BOX-12", "Caja x12 Hey Malbec!", dry_supply.CategoryBox, "UNIT", 1500},
-		{"ds-heym-label", "HEYM-LBL", "Etiqueta Hey Malbec!", dry_supply.CategoryLabel, "UNIT", 15000},
-		{"ds-heym-contra", "HEYM-CTR", "Contraetiqueta Hey Malbec! (genérica)", dry_supply.CategoryContraetiqueta, "UNIT", 15000},
-		{"ds-heym-contra-jp", "HEYM-CTR-JP", "Contraetiqueta Hey Malbec! Japón", dry_supply.CategoryContraetiqueta, "UNIT", 3000},
-		{"ds-heym-contra-sk", "HEYM-CTR-SK", "Contraetiqueta Hey Malbec! Skurnik", dry_supply.CategoryContraetiqueta, "UNIT", 2500},
-		{"ds-heym-capsule", "HEYM-CAP", "Cápsula Hey Malbec!", dry_supply.CategoryCapsule, "UNIT", 15000},
+		{"ds-heym-box", "HEYM-BOX-6", "Caja x6 Hey Malbec!", dry_supply.CategoryBox, "UNIT", 2000, 500},
+		{"ds-heym-box12", "HEYM-BOX-12", "Caja x12 Hey Malbec!", dry_supply.CategoryBox, "UNIT", 1500, 300},
+		{"ds-heym-label", "HEYM-LBL", "Etiqueta Hey Malbec!", dry_supply.CategoryLabel, "UNIT", 15000, 5000},
+		{"ds-heym-contra", "HEYM-CTR", "Contraetiqueta Hey Malbec! (genérica)", dry_supply.CategoryContraetiqueta, "UNIT", 15000, 5000},
+		{"ds-heym-contra-jp", "HEYM-CTR-JP", "Contraetiqueta Hey Malbec! Japón", dry_supply.CategoryContraetiqueta, "UNIT", 3000, 1000},
+		{"ds-heym-contra-sk", "HEYM-CTR-SK", "Contraetiqueta Hey Malbec! Skurnik", dry_supply.CategoryContraetiqueta, "UNIT", 2500, 800},
+		{"ds-heym-capsule", "HEYM-CAP", "Cápsula Hey Malbec!", dry_supply.CategoryCapsule, "UNIT", 15000, 5000},
 		// Kung Fu Malbec line
-		{"ds-kungm-box", "KUNGM-BOX-6", "Caja x6 Kung Fu Malbec", dry_supply.CategoryBox, "UNIT", 1200},
-		{"ds-kungm-label", "KUNGM-LBL", "Etiqueta Kung Fu Malbec", dry_supply.CategoryLabel, "UNIT", 10000},
-		{"ds-kungm-contra", "KUNGM-CTR", "Contraetiqueta Kung Fu Malbec", dry_supply.CategoryContraetiqueta, "UNIT", 10000},
-		{"ds-kungm-capsule", "KUNGM-CAP", "Cápsula Kung Fu Malbec", dry_supply.CategoryCapsule, "UNIT", 10000},
+		{"ds-kungm-box", "KUNGM-BOX-6", "Caja x6 Kung Fu Malbec", dry_supply.CategoryBox, "UNIT", 1200, 400},
+		{"ds-kungm-label", "KUNGM-LBL", "Etiqueta Kung Fu Malbec", dry_supply.CategoryLabel, "UNIT", 10000, 3000},
+		{"ds-kungm-contra", "KUNGM-CTR", "Contraetiqueta Kung Fu Malbec", dry_supply.CategoryContraetiqueta, "UNIT", 10000, 3000},
+		{"ds-kungm-capsule", "KUNGM-CAP", "Cápsula Kung Fu Malbec", dry_supply.CategoryCapsule, "UNIT", 10000, 3000},
 		// The Party line
-		{"ds-party-box", "TDCL-BOX-6", "Caja x6 The Party", dry_supply.CategoryBox, "UNIT", 800},
-		{"ds-party-label", "TDCL-LBL", "Etiqueta The Party", dry_supply.CategoryLabel, "UNIT", 8000},
-		{"ds-party-contra", "TDCL-CTR", "Contraetiqueta The Party", dry_supply.CategoryContraetiqueta, "UNIT", 8000},
+		{"ds-party-box", "TDCL-BOX-6", "Caja x6 The Party", dry_supply.CategoryBox, "UNIT", 800, 200},
+		{"ds-party-label", "TDCL-LBL", "Etiqueta The Party", dry_supply.CategoryLabel, "UNIT", 8000, 2000},
+		{"ds-party-contra", "TDCL-CTR", "Contraetiqueta The Party", dry_supply.CategoryContraetiqueta, "UNIT", 8000, 2000},
 		// Old Vines Patagonia line
-		{"ds-ovp-box", "OVP-BOX-6", "Caja x6 Old Vines Patagonia", dry_supply.CategoryBox, "UNIT", 600},
-		{"ds-ovp-label", "OVP-LBL", "Etiqueta Old Vines Patagonia", dry_supply.CategoryLabel, "UNIT", 6000},
-		{"ds-ovp-contra", "OVP-CTR", "Contraetiqueta Old Vines Patagonia", dry_supply.CategoryContraetiqueta, "UNIT", 6000},
+		{"ds-ovp-box", "OVP-BOX-6", "Caja x6 Old Vines Patagonia", dry_supply.CategoryBox, "UNIT", 600, 200},
+		{"ds-ovp-label", "OVP-LBL", "Etiqueta Old Vines Patagonia", dry_supply.CategoryLabel, "UNIT", 6000, 1500},
+		{"ds-ovp-contra", "OVP-CTR", "Contraetiqueta Old Vines Patagonia", dry_supply.CategoryContraetiqueta, "UNIT", 6000, 1500},
 		// Shared supplies
-		{"ds-cork-std", "CORK-STD", "Corcho estándar 38mm", dry_supply.CategoryCork, "UNIT", 50000},
-		{"ds-cork-prem", "CORK-PREM", "Corcho premium 44mm", dry_supply.CategoryCork, "UNIT", 20000},
-		{"ds-cap-gold", "CAP-GOLD", "Cápsula dorada genérica", dry_supply.CategoryCapsule, "UNIT", 30000},
+		{"ds-cork-std", "CORK-STD", "Corcho estándar 38mm", dry_supply.CategoryCork, "UNIT", 50000, 10000},
+		{"ds-cork-prem", "CORK-PREM", "Corcho premium 44mm", dry_supply.CategoryCork, "UNIT", 20000, 5000},
+		{"ds-cap-gold", "CAP-GOLD", "Cápsula dorada genérica", dry_supply.CategoryCapsule, "UNIT", 30000, 8000},
 	}
 
 	for _, s := range seeds {
-		ds, err := dry_supply.NewDrySupplyWithID(s.id, s.code, s.name, s.category, s.unit)
+		ds, err := dry_supply.NewDrySupplyWithID(s.id, s.code, s.name, s.category, s.unit, s.reorderPoint)
 		if err != nil {
 			panic(err)
 		}

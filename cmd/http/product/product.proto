@@ -23,6 +23,7 @@ message BillOfDrySupply {
 message CreateProductRequest {
   string name = 1;
   repeated BillOfDrySupply bods = 2;
+  string sku = 3;
 }
 
 message UpdateProductRequest {

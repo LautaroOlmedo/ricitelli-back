@@ -19,7 +19,7 @@ type StockTricapa struct {
 }
 
 type DrySupplyStorage interface {
-	CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string) (*dry_supply.DrySupply, error)
+	CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string, reorderPoint int) (*dry_supply.DrySupply, error)
 	GetDrySupplyByID(ctx context.Context, id string) (*dry_supply.DrySupply, error)
 	GetDrySupplyByCode(ctx context.Context, code string) (*dry_supply.DrySupply, error)
 	GetDrySupplies(ctx context.Context) ([]dry_supply.DrySupply, error)
@@ -44,8 +44,8 @@ func NewDrySupplyService(storage DrySupplyStorage) *Service {
 	return &Service{storage: storage}
 }
 
-func (s *Service) CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string) (*dry_supply.DrySupply, error) {
-	return s.storage.CreateDrySupply(ctx, code, name, category, unit)
+func (s *Service) CreateDrySupply(ctx context.Context, code, name string, category dry_supply.Category, unit string, reorderPoint int) (*dry_supply.DrySupply, error) {
+	return s.storage.CreateDrySupply(ctx, code, name, category, unit, reorderPoint)
 }
 
 func (s *Service) GetDrySupplyByID(ctx context.Context, id string) (*dry_supply.DrySupply, error) {

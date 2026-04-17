@@ -261,8 +261,12 @@ func (s *Server) CreateProduct(ctx context.Context, req *productpb.CreateProduct
 			QuantityPerUnit: b.QuantityPerUnit,
 		})
 	}
-	if err := s.AppService.ProductService.CreateProduct(ctx, req.Name, bods); err != nil {
+	p, err := s.AppService.ProductService.CreateProduct(ctx, req.Name, bods)
+	if err != nil {
 		return nil, err
+	}
+	if err := s.AppService.ProductInventoryService.CreateProductInventory(p.GetID(), req.Sku); err != nil {
+		return nil, status.Errorf(codes.Internal, "product created but inventory init failed: %v", err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -298,7 +302,7 @@ func (s *Server) CreateDrySupply(ctx context.Context, req *drysupplypb.CreateDry
 	if req.Code == "" || req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "code and name are required")
 	}
-	ds, err := s.DrySupplyService.CreateDrySupply(ctx, req.Code, req.Name, dry_supply_domain.Category(req.Category), req.Unit)
+	ds, err := s.DrySupplyService.CreateDrySupply(ctx, req.Code, req.Name, dry_supply_domain.Category(req.Category), req.Unit, int(req.ReorderPoint))
 	if err != nil {
 		return nil, err
 	}
@@ -377,13 +381,15 @@ func toProtoDrySupply(ds interface {
 	GetName() string
 	GetCategory() dry_supply_domain.Category
 	GetUnit() string
+	GetReorderPoint() int
 }) *drysupplypb.DrySupply {
 	return &drysupplypb.DrySupply{
-		Id:       ds.GetID(),
-		Code:     ds.GetCode(),
-		Name:     ds.GetName(),
-		Category: string(ds.GetCategory()),
-		Unit:     ds.GetUnit(),
+		Id:           ds.GetID(),
+		Code:         ds.GetCode(),
+		Name:         ds.GetName(),
+		Category:     string(ds.GetCategory()),
+		Unit:         ds.GetUnit(),
+		ReorderPoint: int32(ds.GetReorderPoint()),
 	}
 }
 

@@ -428,7 +428,7 @@ func (r *InMemoryRepository) loadInsumosSecos(path string) error {
 		category := mapDrySupplyCategory(cell(row, 3))
 		id := uuid.New().String()
 
-		ds, err := drysupply.NewDrySupplyWithID(id, code, name, category, "UNIT")
+		ds, err := drysupply.NewDrySupplyWithID(id, code, name, category, "UNIT", 0)
 		if err != nil {
 			continue
 		}

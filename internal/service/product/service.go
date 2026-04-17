@@ -7,7 +7,7 @@ import (
 )
 
 type ProductStorage interface {
-	CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) error
+	CreateProduct(ctx context.Context, name string, bods []valueObject.BillOfDrySupply) (*product.Product, error)
 	GetProductByID(ctx context.Context, id string) (*product.Product, error)
 	GetProducts(ctx context.Context) ([]product.Product, error)
 	UpdateProduct(ctx context.Context, id, name string, bods []valueObject.BillOfDrySupply) error

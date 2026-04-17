@@ -148,6 +148,7 @@ type CreateProductRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Bods          []*BillOfDrySupply     `protobuf:"bytes,2,rep,name=bods,proto3" json:"bods,omitempty"`
+	Sku           string                 `protobuf:"bytes,3,opt,name=sku,proto3" json:"sku,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -194,6 +195,13 @@ func (x *CreateProductRequest) GetBods() []*BillOfDrySupply {
 		return x.Bods
 	}
 	return nil
+}
+
+func (x *CreateProductRequest) GetSku() string {
+	if x != nil {
+		return x.Sku
+	}
+	return ""
 }
 
 type UpdateProductRequest struct {
@@ -408,10 +416,11 @@ const file_product_proto_rawDesc = "" +
 	"\timage_url\x18\x04 \x01(\tR\bimageUrl\"a\n" +
 	"\x0fBillOfDrySupply\x12\"\n" +
 	"\rdry_supply_id\x18\x01 \x01(\tR\vdrySupplyId\x12*\n" +
-	"\x11quantity_per_unit\x18\x02 \x01(\x04R\x0fquantityPerUnit\"X\n" +
+	"\x11quantity_per_unit\x18\x02 \x01(\x04R\x0fquantityPerUnit\"j\n" +
 	"\x14CreateProductRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12,\n" +
-	"\x04bods\x18\x02 \x03(\v2\x18.product.BillOfDrySupplyR\x04bods\"h\n" +
+	"\x04bods\x18\x02 \x03(\v2\x18.product.BillOfDrySupplyR\x04bods\x12\x10\n" +
+	"\x03sku\x18\x03 \x01(\tR\x03sku\"h\n" +
 	"\x14UpdateProductRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12,\n" +

@@ -1,5 +1,15 @@
 [
   {
+    "id": "e3e9d853-d515-404b-bbed-551db7e8a5bf",
+    "type": "SALES",
+    "filename": "report-SALES-e3e9d853.pdf",
+    "path": "output/reports/2026-04-17/report-SALES-e3e9d853.pdf",
+    "generated_at": "2026-04-17T12:17:08.471959Z",
+    "file_size": 2598,
+    "from_date": "2024-04-24T00:00:00Z",
+    "to_date": "2024-04-25T00:00:00Z"
+  },
+  {
     "id": "3f8367eb-9a36-4dec-a5ca-0bcc6c4b7e6d",
     "type": "SALES",
     "filename": "report-SALES-3f8367eb.pdf",
