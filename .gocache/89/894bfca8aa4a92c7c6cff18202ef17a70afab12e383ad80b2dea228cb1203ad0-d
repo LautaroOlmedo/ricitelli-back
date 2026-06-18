@@ -1,0 +1,3 @@
+./sales_administration.pb.go
+./sales_administration_grpc.pb.go
+./sales_administration_pb_test.go

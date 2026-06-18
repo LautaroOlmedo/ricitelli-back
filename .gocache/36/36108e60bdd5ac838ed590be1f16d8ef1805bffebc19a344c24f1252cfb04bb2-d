@@ -1,0 +1,26 @@
+# test log
+getenv POSTGRES_INTEGRATION_URL
+getenv APPDATA
+stat C:\Users\ASUS\AppData\Roaming\postgresql\postgresql.crt
+stat C:\Users\ASUS\AppData\Roaming\postgresql\root.crt
+getenv PGSSLCERT
+getenv PGSSLPASSWORD
+getenv PGSSLSNI
+getenv PGSSLNEGOTIATION
+getenv PGOPTIONS
+getenv PGAPPNAME
+getenv PGCONNECT_TIMEOUT
+getenv PGSSLROOTCERT
+getenv PGTARGETSESSIONATTRS
+getenv PGSERVICE
+getenv PGSERVICEFILE
+getenv PGDATABASE
+getenv PGUSER
+getenv PGSSLMODE
+getenv PGTZ
+getenv PGHOST
+getenv PGPORT
+getenv PGPASSWORD
+getenv PGPASSFILE
+getenv PGSSLKEY
+open C:\Users\ASUS\AppData\Roaming\postgresql\pgpass.conf

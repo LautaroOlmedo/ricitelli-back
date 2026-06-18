@@ -1,0 +1,6 @@
+./create_product.go
+./get_product_by_id.go
+./get_products.go
+./service.go
+./set_image.go
+./update_product.go

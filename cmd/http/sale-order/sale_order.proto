@@ -14,6 +14,22 @@ message SaleOrderItem {
   float  unit_price = 3;
 }
 
+message AdministrativeDocumentReference {
+  string id              = 1;
+  string document_number = 2;
+  string status          = 3;
+}
+
+message SaleOrderAdministrativeSummary {
+  string total_ordered_quantity       = 1;
+  string invoiced_quantity            = 2;
+  string remitted_quantity            = 3;
+  string pending_invoice_quantity     = 4;
+  string pending_remittance_quantity  = 5;
+  repeated AdministrativeDocumentReference linked_invoices    = 6;
+  repeated AdministrativeDocumentReference linked_remittances = 7;
+}
+
 // SaleOrder represents a customer order with its full commercial context.
 message SaleOrder {
   string id                  = 1;
@@ -26,6 +42,7 @@ message SaleOrder {
   string market              = 7; // DOMESTIC | EXPORT
   string destination_country = 8; // ISO-3166 alpha-2, e.g. "AR", "GB", "JP"
   string sale_type           = 9; // SALE | SAMPLE_CUSTOMS | GIFT | INTERNAL | COMMERCIAL_SAMPLE
+  SaleOrderAdministrativeSummary administrative_summary = 10;
 }
 
 message CreateSaleOrderRequest {
@@ -51,9 +68,16 @@ message UpdateSaleOrderStatusRequest {
   string status = 2; // target status
 }
 
+// GetSaleOrdersByDateRangeRequest filters orders by creation date (inclusive).
+message GetSaleOrdersByDateRangeRequest {
+  string from_date = 1; // YYYY-MM-DD
+  string to_date   = 2; // YYYY-MM-DD
+}
+
 service SaleOrderService {
   rpc CreateSaleOrder(CreateSaleOrderRequest)                   returns (SaleOrder);
   rpc GetSaleOrderByID(GetSaleOrderByIDRequest)                 returns (SaleOrder);
   rpc GetSaleOrders(google.protobuf.Empty)                      returns (GetSaleOrdersResponse);
   rpc UpdateSaleOrderStatus(UpdateSaleOrderStatusRequest)       returns (SaleOrder);
+  rpc GetSaleOrdersByDateRange(GetSaleOrdersByDateRangeRequest) returns (GetSaleOrdersResponse);
 }

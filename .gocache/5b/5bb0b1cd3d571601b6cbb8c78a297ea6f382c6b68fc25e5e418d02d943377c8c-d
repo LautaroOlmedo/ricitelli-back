@@ -1,0 +1,6 @@
+./auth_server.go
+./purchasing_administration_mapping.go
+./purchasing_administration_server.go
+./reporting_server.go
+./sales_administration_server.go
+./server.go

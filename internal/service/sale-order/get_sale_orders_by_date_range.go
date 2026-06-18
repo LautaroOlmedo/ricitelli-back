@@ -11,5 +11,12 @@ func (s *Service) GetSaleOrdersByDateRange(ctx context.Context, from, to string)
 	if from == "" || to == "" {
 		return nil, errors.New("from_date and to_date are required")
 	}
-	return s.Storage.GetSaleOrdersByDateRange(ctx, from, to)
+	orders, err := s.Storage.GetSaleOrdersByDateRange(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.attachAdministrativeSummaries(ctx, orders); err != nil {
+		return nil, err
+	}
+	return orders, nil
 }

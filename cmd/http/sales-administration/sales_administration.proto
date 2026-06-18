@@ -1,0 +1,171 @@
+syntax = "proto3";
+
+package sales_administration;
+
+option go_package = "ricitelli-back/cmd/http/gen/sales_administration;salesadministrationpb";
+
+message SalesInvoiceItem {
+  int32 line_number = 1;
+  string product_id = 2;
+  string description = 3;
+  string quantity = 4;
+  string unit_price = 5;
+  string tax_rate = 6;
+  string net_amount = 7;
+  string tax_amount = 8;
+  string total_amount = 9;
+}
+
+message SalesInvoice {
+  string id = 1;
+  string customer_id = 2;
+  string sale_order_id = 3;
+  string document_type = 4; // INVOICE | CREDIT | DEBIT
+  int32 point_of_sale = 5;
+  int64 document_number = 6;
+  string issue_date = 7;
+  string due_date = 8;
+  string currency = 9;
+  string exchange_rate = 10;
+  string subtotal = 11;
+  string tax_total = 12;
+  string total_amount = 13;
+  string status = 14; // DRAFT | ISSUED
+  string idempotency_key = 15;
+  repeated SalesInvoiceItem items = 16;
+  string created_at = 17;
+  string updated_at = 18;
+}
+
+message CreateSalesInvoiceRequest {
+  string customer_id = 1;
+  string sale_order_id = 2;
+  string document_type = 3;
+  int32 point_of_sale = 4;
+  int64 document_number = 5;
+  string issue_date = 6;
+  string due_date = 7;
+  string currency = 8;
+  string exchange_rate = 9;
+  string subtotal = 10;
+  string tax_total = 11;
+  string total_amount = 12;
+  string idempotency_key = 13;
+  repeated SalesInvoiceItem items = 14;
+}
+
+message RemittanceItem {
+  int32 line_number = 1;
+  string product_id = 2;
+  string description = 3;
+  string quantity = 4;
+  string lot_number = 5;
+}
+
+message Remittance {
+  string id = 1;
+  string customer_id = 2;
+  string sale_order_id = 3;
+  string sales_invoice_id = 4;
+  int32 point_of_sale = 5;
+  int64 document_number = 6;
+  string issue_date = 7;
+  string delivery_date = 8;
+  string status = 9; // DRAFT | CONFIRMED
+  string idempotency_key = 10;
+  repeated RemittanceItem items = 11;
+  string created_at = 12;
+  string updated_at = 13;
+}
+
+message CreateRemittanceRequest {
+  string customer_id = 1;
+  string sale_order_id = 2;
+  string sales_invoice_id = 3;
+  int32 point_of_sale = 4;
+  int64 document_number = 5;
+  string issue_date = 6;
+  string delivery_date = 7;
+  string idempotency_key = 8;
+  repeated RemittanceItem items = 9;
+}
+
+message CustomerReceiptAllocation {
+  string sales_invoice_id = 1;
+  string allocated_amount = 2;
+}
+
+message CustomerReceipt {
+  string id = 1;
+  string customer_id = 2;
+  int64 receipt_number = 3;
+  string receipt_date = 4;
+  string currency = 5;
+  string exchange_rate = 6;
+  string amount = 7;
+  string payment_method = 8;
+  string payment_reference = 9;
+  string status = 10; // DRAFT | POSTED
+  string idempotency_key = 11;
+  repeated CustomerReceiptAllocation allocations = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message CreateCustomerReceiptRequest {
+  string customer_id = 1;
+  int64 receipt_number = 2;
+  string receipt_date = 3;
+  string currency = 4;
+  string exchange_rate = 5;
+  string amount = 6;
+  string payment_method = 7;
+  string payment_reference = 8;
+  string idempotency_key = 9;
+  repeated CustomerReceiptAllocation allocations = 10;
+}
+
+message IDRequest {
+  string id = 1;
+}
+
+message ListSalesAdministrationRequest {
+  string customer_id = 1;
+  string sale_order_id = 2;
+  string status = 3;
+}
+
+message SalesInvoiceList {
+  repeated SalesInvoice invoices = 1;
+}
+
+message RemittanceList {
+  repeated Remittance remittances = 1;
+}
+
+message CustomerReceiptList {
+  repeated CustomerReceipt receipts = 1;
+}
+
+message InvoiceOutstandingBalance {
+  string sales_invoice_id = 1;
+  string outstanding_balance = 2;
+}
+
+service SalesAdministrationService {
+  rpc CreateSalesInvoice(CreateSalesInvoiceRequest) returns (SalesInvoice);
+  rpc GetSalesInvoiceByID(IDRequest) returns (SalesInvoice);
+  rpc ListSalesInvoices(ListSalesAdministrationRequest) returns (SalesInvoiceList);
+  rpc IssueSalesInvoice(IDRequest) returns (SalesInvoice);
+  rpc GetSalesInvoiceOutstandingBalance(IDRequest) returns (InvoiceOutstandingBalance);
+
+  rpc CreateRemittance(CreateRemittanceRequest) returns (Remittance);
+  rpc GetRemittanceByID(IDRequest) returns (Remittance);
+  rpc ListRemittances(ListSalesAdministrationRequest) returns (RemittanceList);
+  rpc ConfirmRemittance(IDRequest) returns (Remittance);
+
+  rpc CreateCustomerReceipt(CreateCustomerReceiptRequest) returns (CustomerReceipt);
+  rpc GetCustomerReceiptByID(IDRequest) returns (CustomerReceipt);
+  rpc ListCustomerReceipts(ListSalesAdministrationRequest) returns (CustomerReceiptList);
+  rpc PostCustomerReceipt(IDRequest) returns (CustomerReceipt);
+}

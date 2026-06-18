@@ -1,0 +1,12 @@
+./customer_receipt_repository.go
+./migrations.go
+./purchasing_invoices.go
+./purchasing_needs.go
+./purchasing_payments.go
+./purchasing_quotes.go
+./purchasing_suppliers.go
+./purchasing_vat_position.go
+./remittance_repository.go
+./repository.go
+./sales_invoice_repository.go
+./administrative_integration_test.go

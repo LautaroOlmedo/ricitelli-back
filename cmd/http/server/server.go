@@ -140,6 +140,24 @@ func (s *Server) GetSaleOrders(ctx context.Context, _ *emptypb.Empty) (*saleorde
 	return &saleorderpb.GetSaleOrdersResponse{SaleOrders: protoOrders}, nil
 }
 
+func (s *Server) GetSaleOrdersByDateRange(ctx context.Context, req *saleorderpb.GetSaleOrdersByDateRangeRequest) (*saleorderpb.GetSaleOrdersResponse, error) {
+	dateRangeService, ok := s.AppService.SaleOrderService.(interface {
+		GetSaleOrdersByDateRange(context.Context, string, string) ([]sale_order_domain.SaleOrder, error)
+	})
+	if !ok {
+		return nil, status.Error(codes.Unimplemented, "sale order date range query is unavailable")
+	}
+	orders, err := dateRangeService.GetSaleOrdersByDateRange(ctx, req.FromDate, req.ToDate)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	protoOrders := make([]*saleorderpb.SaleOrder, 0, len(orders))
+	for i := range orders {
+		protoOrders = append(protoOrders, toProtoSaleOrder(&orders[i]))
+	}
+	return &saleorderpb.GetSaleOrdersResponse{SaleOrders: protoOrders}, nil
+}
+
 func (s *Server) UpdateSaleOrderStatus(ctx context.Context, req *saleorderpb.UpdateSaleOrderStatusRequest) (*saleorderpb.SaleOrder, error) {
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
@@ -160,6 +178,19 @@ func toProtoSaleOrder(o *sale_order_domain.SaleOrder) *saleorderpb.SaleOrder {
 			UnitPrice: item.UnitPrice,
 		})
 	}
+	summary := o.GetAdministrativeSummary()
+	linkedInvoices := make([]*saleorderpb.AdministrativeDocumentReference, 0, len(summary.LinkedInvoices))
+	for _, document := range summary.LinkedInvoices {
+		linkedInvoices = append(linkedInvoices, &saleorderpb.AdministrativeDocumentReference{
+			Id: document.ID, DocumentNumber: document.DocumentNumber, Status: document.Status,
+		})
+	}
+	linkedRemittances := make([]*saleorderpb.AdministrativeDocumentReference, 0, len(summary.LinkedRemittances))
+	for _, document := range summary.LinkedRemittances {
+		linkedRemittances = append(linkedRemittances, &saleorderpb.AdministrativeDocumentReference{
+			Id: document.ID, DocumentNumber: document.DocumentNumber, Status: document.Status,
+		})
+	}
 	return &saleorderpb.SaleOrder{
 		Id:                 o.GetID(),
 		CustomerId:         o.GetCustomerID(),
@@ -170,6 +201,15 @@ func toProtoSaleOrder(o *sale_order_domain.SaleOrder) *saleorderpb.SaleOrder {
 		Market:             string(o.GetMarket()),
 		DestinationCountry: o.GetDestinationCountry(),
 		SaleType:           string(o.GetSaleType()),
+		AdministrativeSummary: &saleorderpb.SaleOrderAdministrativeSummary{
+			TotalOrderedQuantity:      summary.TotalOrderedQuantity,
+			InvoicedQuantity:          summary.InvoicedQuantity,
+			RemittedQuantity:          summary.RemittedQuantity,
+			PendingInvoiceQuantity:    summary.PendingInvoiceQuantity,
+			PendingRemittanceQuantity: summary.PendingRemittanceQuantity,
+			LinkedInvoices:            linkedInvoices,
+			LinkedRemittances:         linkedRemittances,
+		},
 	}
 }
 
@@ -785,4 +825,3 @@ func (s *Server) SetProductImage(ctx context.Context, req *productpb.SetProductI
 	}
 	return &emptypb.Empty{}, nil
 }
-

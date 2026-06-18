@@ -6,5 +6,12 @@ import (
 )
 
 func (s *Service) GetSaleOrders(ctx context.Context) ([]sale_order.SaleOrder, error) {
-	return s.Storage.GetSaleOrders(ctx)
+	orders, err := s.Storage.GetSaleOrders(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.attachAdministrativeSummaries(ctx, orders); err != nil {
+		return nil, err
+	}
+	return orders, nil
 }

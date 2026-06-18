@@ -1,0 +1,6 @@
+./bill_of_dry_supply.go
+./decimal.go
+./dry_supply_movement.go
+./material_requirement.go
+./product_movement.go
+./sale_order_item.go

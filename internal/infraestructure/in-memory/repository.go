@@ -22,6 +22,9 @@ import (
 )
 
 type InMemoryRepository struct {
+	administrationOnce sync.Once
+	administration     *administrativeStore
+
 	customersMutex          sync.RWMutex
 	saleOrdersMutex         sync.RWMutex
 	productionOrdersMutex   sync.RWMutex

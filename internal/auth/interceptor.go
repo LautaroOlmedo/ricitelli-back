@@ -15,6 +15,20 @@ var publicMethods = map[string]bool{
 	"/auth.AuthService/Login": true,
 }
 
+var adminServicePrefixes = []string{
+	"/sales_administration.SalesAdministrationService/",
+	"/purchasing_administration.PurchasingAdministrationService/",
+}
+
+func requiresAdmin(fullMethod string) bool {
+	for _, prefix := range adminServicePrefixes {
+		if strings.HasPrefix(fullMethod, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // NewUnaryInterceptor returns a gRPC unary interceptor that validates JWT tokens.
 func NewUnaryInterceptor(secret string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -36,6 +50,9 @@ func NewUnaryInterceptor(secret string) grpc.UnaryServerInterceptor {
 		claims, err := ValidateToken(tokenStr, secret)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, "invalid or expired token: "+err.Error())
+		}
+		if requiresAdmin(info.FullMethod) && claims.Role != "admin" {
+			return nil, status.Error(codes.PermissionDenied, "admin role required")
 		}
 		ctx = context.WithValue(ctx, claimsKey{}, claims)
 		return handler(ctx, req)

@@ -1,0 +1,5 @@
+./customer.go
+./lot.go
+./lowstock.go
+./production.go
+./sales.go

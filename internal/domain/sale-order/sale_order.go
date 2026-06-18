@@ -52,16 +52,33 @@ const (
 
 // SaleOrder represents the aggregate root for a customer sales order.
 type SaleOrder struct {
-	id                 string
-	customerID         string
-	status             Status
-	items              []valueObject.SaleOrderItem
-	currency           Currency
-	market             Market
-	destinationCountry string // ISO-3166 alpha-2, e.g., "AR", "GB", "BR", "JP"
-	saleType           SaleType
-	createdAt          string
-	active             bool
+	id                    string
+	customerID            string
+	status                Status
+	items                 []valueObject.SaleOrderItem
+	currency              Currency
+	market                Market
+	destinationCountry    string // ISO-3166 alpha-2, e.g., "AR", "GB", "BR", "JP"
+	saleType              SaleType
+	createdAt             string
+	active                bool
+	administrativeSummary AdministrativeSummary
+}
+
+type AdministrativeDocumentReference struct {
+	ID             string
+	DocumentNumber string
+	Status         string
+}
+
+type AdministrativeSummary struct {
+	TotalOrderedQuantity      string
+	InvoicedQuantity          string
+	RemittedQuantity          string
+	PendingInvoiceQuantity    string
+	PendingRemittanceQuantity string
+	LinkedInvoices            []AdministrativeDocumentReference
+	LinkedRemittances         []AdministrativeDocumentReference
 }
 
 type NewSaleOrderParams struct {
@@ -138,6 +155,18 @@ func (s *SaleOrder) GetDestinationCountry() string { return s.destinationCountry
 func (s *SaleOrder) GetSaleType() SaleType         { return s.saleType }
 func (s *SaleOrder) GetCreatedAt() string          { return s.createdAt }
 func (s *SaleOrder) IsActive() bool                { return s.active }
+func (s *SaleOrder) GetAdministrativeSummary() AdministrativeSummary {
+	summary := s.administrativeSummary
+	summary.LinkedInvoices = append([]AdministrativeDocumentReference(nil), summary.LinkedInvoices...)
+	summary.LinkedRemittances = append([]AdministrativeDocumentReference(nil), summary.LinkedRemittances...)
+	return summary
+}
+
+func (s *SaleOrder) SetAdministrativeSummary(summary AdministrativeSummary) {
+	summary.LinkedInvoices = append([]AdministrativeDocumentReference(nil), summary.LinkedInvoices...)
+	summary.LinkedRemittances = append([]AdministrativeDocumentReference(nil), summary.LinkedRemittances...)
+	s.administrativeSummary = summary
+}
 
 // GetItems returns a defensive copy
 func (s *SaleOrder) GetItems() []valueObject.SaleOrderItem {

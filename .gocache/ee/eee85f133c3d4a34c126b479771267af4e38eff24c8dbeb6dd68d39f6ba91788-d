@@ -1,0 +1,8 @@
+./filter.go
+./generate_customer.go
+./generate_general.go
+./generate_lot.go
+./generate_lowstock.go
+./generate_production.go
+./generate_sales.go
+./service.go

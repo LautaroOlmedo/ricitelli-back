@@ -10,7 +10,7 @@ import (
 // TransitionSaleOrderStatus advances the sale order status and applies
 // inventory side-effects for each transition.
 //
-//   - → INVOICED : dispatches (consumes) the reserved dressed stock for each item.
+//   - → DISPATCHED: dispatches (consumes) the reserved dressed stock for each item.
 //   - → CANCELLED: releases any reserved dressed stock back to available.
 //   - All others : pure status update, no inventory changes.
 func (s *Service) TransitionSaleOrderStatus(ctx context.Context, orderID string, newStatus sale_order.Status) (*sale_order.SaleOrder, error) {
@@ -20,7 +20,7 @@ func (s *Service) TransitionSaleOrderStatus(ctx context.Context, orderID string,
 	}
 
 	switch newStatus {
-	case sale_order.StatusInvoiced:
+	case sale_order.StatusDispatched:
 		if err := s.dispatchStock(ctx, order); err != nil {
 			return nil, err
 		}

@@ -1,0 +1,8 @@
+./create_customer.go
+./deactivate_customer.go
+./get_customer_by_id.go
+./get_customers.go
+./place_order.go
+./search_customers_by_social_reason.go
+./service.go
+./update_customer.go

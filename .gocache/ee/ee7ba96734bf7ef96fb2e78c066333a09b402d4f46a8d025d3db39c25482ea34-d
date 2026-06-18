@@ -1,0 +1,8 @@
+./common.go
+./decimal.go
+./purchase_need.go
+./supplier.go
+./supplier_invoice.go
+./supplier_payment.go
+./supplier_quote.go
+./vat_position.go

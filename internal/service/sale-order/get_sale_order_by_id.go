@@ -6,5 +6,12 @@ import (
 )
 
 func (s *Service) GetSaleOrderByID(ctx context.Context, id string) (*sale_order.SaleOrder, error) {
-	return s.Storage.GetSaleOrderByID(ctx, id)
+	order, err := s.Storage.GetSaleOrderByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.attachAdministrativeSummary(ctx, order); err != nil {
+		return nil, err
+	}
+	return order, nil
 }

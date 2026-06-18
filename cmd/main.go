@@ -13,8 +13,10 @@ import (
 	inventorypb "ricitelli-back/cmd/http/gen/inventory"
 	productpb "ricitelli-back/cmd/http/gen/product"
 	productionorderpb "ricitelli-back/cmd/http/gen/production_order"
+	purchasingadministrationpb "ricitelli-back/cmd/http/gen/purchasing_administration"
 	reportingpb "ricitelli-back/cmd/http/gen/reporting"
 	saleorderpb "ricitelli-back/cmd/http/gen/sale_order"
+	salesadministrationpb "ricitelli-back/cmd/http/gen/sales_administration"
 	vineyardpb "ricitelli-back/cmd/http/gen/vineyard"
 	"ricitelli-back/cmd/http/server"
 	"ricitelli-back/config"
@@ -28,9 +30,11 @@ import (
 	"ricitelli-back/internal/service/product"
 	product_inventory "ricitelli-back/internal/service/product-inventory"
 	production_order "ricitelli-back/internal/service/production-order"
+	purchasing_administration "ricitelli-back/internal/service/purchasing-administration"
 	reporting_svc "ricitelli-back/internal/service/reporting"
 	reporting_storage "ricitelli-back/internal/service/reporting/storage"
 	sale_order "ricitelli-back/internal/service/sale-order"
+	sales_administration "ricitelli-back/internal/service/sales-administration"
 	vineyard_svc "ricitelli-back/internal/service/vineyard"
 
 	"google.golang.org/grpc"
@@ -60,6 +64,8 @@ func main() {
 			customer_svc.NewCustomerService(pgRepo, pgRepo),
 			vineyard_svc.NewVineyardService(vineyardRepo),
 			pgRepo,
+			pgRepo,
+			pgRepo,
 		)
 		return
 	}
@@ -80,6 +86,8 @@ func main() {
 		customer_svc.NewCustomerService(r, r),
 		vineyard_svc.NewVineyardService(r),
 		r,
+		r,
+		r,
 	)
 }
 
@@ -93,6 +101,8 @@ func boot(
 	customerSvc *customer_svc.Service,
 	vineyardSvc *vineyard_svc.Service,
 	movementStorage inventory_svc.MovementStorage,
+	salesAdministrationStorage sales_administration.Storage,
+	purchasingAdministrationStorage purchasing_administration.Storage,
 ) {
 	appSvc := application_service.NewApplicationService(
 		customerSvc, saleOrderSvc, productionOrderSvc,
@@ -116,6 +126,8 @@ func boot(
 		reportingStore,
 		cfg.ReportsPublicURLBase,
 	)
+	salesAdministrationSvc := sales_administration.NewService(salesAdministrationStorage)
+	purchasingAdministrationSvc := purchasing_administration.NewService(purchasingAdministrationStorage)
 
 	interceptor := auth.NewUnaryInterceptor(cfg.JWTSecret)
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(interceptor))
@@ -123,6 +135,8 @@ func boot(
 	svc := server.NewServer(appSvc, drySupplySvc, inventorySvc, customerSvc, vineyardSvc)
 	authSvc := server.NewAuthServer(cfg.JWTSecret, cfg.AdminUser, cfg.AdminPass)
 	reportingSrv := server.NewReportingServer(reportingSvc)
+	salesAdministrationSrv := server.NewSalesAdministrationServer(salesAdministrationSvc)
+	purchasingAdministrationSrv := server.NewPurchasingAdministrationServer(purchasingAdministrationSvc)
 
 	productpb.RegisterProductServiceServer(grpcServer, svc)
 	saleorderpb.RegisterSaleOrderServiceServer(grpcServer, svc)
@@ -134,6 +148,8 @@ func boot(
 	vineyardpb.RegisterVineyardServiceServer(grpcServer, svc)
 	authpb.RegisterAuthServiceServer(grpcServer, authSvc)
 	reportingpb.RegisterReportingServiceServer(grpcServer, reportingSrv)
+	salesadministrationpb.RegisterSalesAdministrationServiceServer(grpcServer, salesAdministrationSrv)
+	purchasingadministrationpb.RegisterPurchasingAdministrationServiceServer(grpcServer, purchasingAdministrationSrv)
 
 	// HTTP server for downloading generated PDFs.
 	go func() {

@@ -1,0 +1,4 @@
+./create_product_inventory.go
+./get_product_inventory.go
+./save_product_inventory.go
+./service.go
